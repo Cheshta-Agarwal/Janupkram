@@ -168,6 +168,7 @@ submitted ─▶ under_review ─▶ validated ─▶ routed ─▶ team_formed 
 | Route | Access | Page |
 | :--- | :--- | :--- |
 | `/` | Public | Pan-India Spatial Explorer, live overview KPIs, portal directory & challenge discovery |
+| `/embed/map` | Public | Header-free embeddable `<iframe>` civic map widget (`?district=&category=`) |
 | `/login`, `/register` | Public | Authentication with 1-click demo login buttons & role registration |
 | `/challenges/:id` | Public / Role-enhanced | 360° Challenge Dossier, Authority Escalation, Public Q&A / Private War-Room, Before/After Proof & Poll |
 | `/profile/:id` | Public | Rich Stakeholder Profile, Civic Karma badge & community endorsement toggle |
@@ -198,6 +199,9 @@ submitted ─▶ under_review ─▶ validated ─▶ routed ─▶ team_formed 
 | **Profile & KYC** | `POST /api/profile/:id/endorse` | Authenticated | Toggle community endorsement (`±5` karma) |
 | **Challenges** | `GET /api/challenges` | Public / Optional | Paginated search & filter with proposal/partnership counts |
 | **Challenges** | `GET /api/challenges/open-feed/public` | Public | Open Civic JSON API for embeds & RWAs |
+| **Challenges** | `GET /api/challenges/sla/overdue` | Public | SLA Escalation Watchlist & overdue countdown list |
+| **Challenges** | `POST /api/challenges/ai-triage` | Authenticated | Gemini / rule-based image & text moderation + English translation |
+| **Challenges** | `POST /api/challenges/webhooks/civic-bot` | Webhook (`x-bot-secret`) | Zero-login WhatsApp / Telegram field intake webhook |
 | **Challenges** | `GET /api/challenges/spatial/nearby` | Public | Geospatial query within radius (`lat`, `lng`, `radiusMeters`) |
 | **Challenges** | `GET /api/challenges/:id/duplicates` | `admin` | 2km `$near` spatial duplicate detector |
 | **Challenges** | `GET /api/challenges/:id` | Public / Optional | 360° challenge detail, proposals, partnerships & audit logs |

@@ -14,9 +14,15 @@ import {
   Search,
   Globe2,
   ExternalLink,
+  Clock,
+  Code2,
+  Copy,
+  Megaphone,
 } from 'lucide-react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useToast } from '../context/ToastContext';
 import {
   ROLE_DASHBOARD_PATH,
   REGION_HUBS,
@@ -30,8 +36,12 @@ import MapPicker from '../components/MapPicker';
 
 export const LandingPage = () => {
   const { isAuthenticated, user } = useAuth();
+  const { t } = useLanguage();
+  const { addToast } = useToast();
   const [overview, setOverview] = useState(null);
   const [challenges, setChallenges] = useState([]);
+  const [slaWatchlist, setSlaWatchlist] = useState([]);
+  const [embedOpen, setEmbedOpen] = useState(false);
   const [regionFilter, setRegionFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -40,12 +50,14 @@ export const LandingPage = () => {
   useEffect(() => {
     const loadLanding = async () => {
       try {
-        const [ovRes, chRes] = await Promise.all([
+        const [ovRes, chRes, slaRes] = await Promise.all([
           api.get('/analytics/overview'),
           api.get('/challenges?limit=30'),
+          api.get('/challenges/sla/overdue'),
         ]);
         setOverview(ovRes.data);
         setChallenges(chRes.data.challenges || []);
+        setSlaWatchlist(slaRes.data.watchlist || []);
       } catch {
         // ignore
       } finally {
@@ -124,7 +136,7 @@ export const LandingPage = () => {
             <div className="lg:col-span-7 animate-fade-up">
               <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/70 px-3 py-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
                 <Sparkles className="h-3.5 w-3.5" />
-                Built by LPU Students • Open Societal Innovation Platform for Everyone
+                {t('heroBadge')}
               </div>
               <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl leading-[1.12]">
                 <span className="bg-gradient-to-r from-indigo-600 via-violet-600 to-emerald-600 bg-clip-text text-transparent">
@@ -133,23 +145,23 @@ export const LandingPage = () => {
                 — Open Societal Innovation Collaboration Grid.
               </h1>
               <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed text-slate-600 dark:text-slate-300">
-                Engineered by college student innovators at <strong>Lovely Professional University (LPU)</strong> for everyone—connecting real-world community problems anywhere with campus R&D labs, civic moderators, and industry CSR partners through verifiable milestones.
+                {t('heroSubtitle')}
               </p>
 
               <div className="mt-7 flex flex-wrap items-center gap-3">
                 {isAuthenticated ? (
                   <Link to={ROLE_DASHBOARD_PATH[user.role] || '/'} className="btn-primary !px-5 !py-3">
-                    Open My Workspace
+                    {t('openWorkspace')}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 ) : (
                   <>
                     <Link to="/login" className="btn-primary !px-5 !py-3">
-                      1-Click Demo Sign-In
+                      {t('demoSignIn')}
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                     <Link to="/register" className="btn-secondary !px-5 !py-3">
-                      Register Stakeholder
+                      {t('registerStakeholder')}
                     </Link>
                   </>
                 )}
@@ -242,14 +254,14 @@ export const LandingPage = () => {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                Interactive Pan-India Spatial Explorer
+                {t('explorerTitle')}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Search any issue by keyword, category, source (Reddit / X), or city to filter map pins &amp; reports.
+                {t('explorerDesc')}
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {['ALL', 'Phagwara', 'New Delhi', 'Bengaluru', 'Pune', 'Jaipur'].map((d) => (
                 <button
                   key={d}
@@ -261,11 +273,52 @@ export const LandingPage = () => {
                       : 'border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                   }`}
                 >
-                  {d === 'ALL' ? 'All Regions' : d === 'Phagwara' ? 'Phagwara (LPU)' : d}
+                  {d === 'ALL' ? t('allRegions') : d === 'Phagwara' ? 'Phagwara (LPU)' : d}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => setEmbedOpen((v) => !v)}
+                className="btn-secondary !py-1.5 !px-2.5 !text-xs"
+              >
+                <Code2 className="h-3.5 w-3.5 text-indigo-500" />
+                {t('embedMapBtn')}
+              </button>
             </div>
           </div>
+
+          {embedOpen && (
+            <div className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-950/40 p-3.5 text-xs space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-bold text-indigo-900 dark:text-indigo-200">
+                  Embeddable Civic Map Widget (&lt;iframe&gt;) for RWAs, News &amp; Campuses
+                </span>
+                <div className="flex gap-2">
+                  <Link
+                    to={`/embed/map?district=${encodeURIComponent(regionFilter)}`}
+                    target="_blank"
+                    className="btn-secondary !py-1 !px-2.5 !text-[11px]"
+                  >
+                    Preview Widget <ExternalLink className="h-3 w-3" />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const code = `<iframe src="${window.location.origin}/embed/map?district=${encodeURIComponent(regionFilter)}" width="100%" height="420" style="border:0;border-radius:12px;" loading="lazy"></iframe>`;
+                      navigator.clipboard?.writeText(code);
+                      addToast('Embed <iframe> snippet copied!');
+                    }}
+                    className="btn-primary !py-1 !px-2.5 !text-[11px]"
+                  >
+                    <Copy className="h-3 w-3" /> Copy Embed Code
+                  </button>
+                </div>
+              </div>
+              <code className="block overflow-x-auto rounded-lg bg-white dark:bg-slate-900 p-2 font-mono text-[11px] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
+                {`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/embed/map?district=${regionFilter}" width="100%" height="420" style="border:0;border-radius:12px;"></iframe>`}
+              </code>
+            </div>
+          )}
 
           {/* Search & Category Filter Bar */}
           <div className="flex flex-wrap items-center gap-3">
@@ -367,6 +420,75 @@ export const LandingPage = () => {
             </div>
           )}
         </div>
+
+        {/* SLA Escalation Watchlist */}
+        {slaWatchlist.length > 0 && (
+          <div className="glass-card p-5 sm:p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-amber-500" />
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                    {t('slaWatchlistTitle')}
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Public countdown on municipal escalations with 1-click X reminder nudges when authorities miss SLA.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {slaWatchlist.slice(0, 6).map((item) => (
+                <div
+                  key={item._id}
+                  className={`rounded-xl border p-4 space-y-2 ${
+                    item.isOverdue
+                      ? 'border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-950/30'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 text-[11px]">
+                    <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                      {item.district} • {item.authorityHandle || item.authorityName}
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 font-mono font-bold ${
+                        item.isOverdue
+                          ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                      }`}
+                    >
+                      {item.ageDays}d ({item.ageHours}h)
+                    </span>
+                  </div>
+                  <Link
+                    to={`/challenges/${item._id}`}
+                    className="block text-xs font-bold text-slate-900 dark:text-white hover:text-indigo-600 line-clamp-2"
+                  >
+                    {item.title}
+                  </Link>
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <span className="text-[11px] capitalize text-slate-500 dark:text-slate-400">
+                      Status: {item.escalationStatus.replace(/_/g, ' ')}
+                    </span>
+                    <a
+                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                        `${item.authorityHandle || ''} Reminder (${item.ageDays}d elapsed): "${item.title}" in ${item.district} still awaiting resolution on Janupkram.`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-lg bg-slate-900 dark:bg-slate-800 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-indigo-600 transition"
+                    >
+                      <Megaphone className="h-3 w-3" />
+                      1-Click X Reminder
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Connected Public Reporting Portals & Discovery Channels */}
         <div className="glass-card p-5 sm:p-6 space-y-4">

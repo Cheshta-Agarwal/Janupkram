@@ -10,6 +10,7 @@ const upload = require('../middleware/upload');
 const { uploadMediaFile } = require('../config/cloudinary');
 const { assertLegalTransition } = require('../utils/stateMachine');
 const { recordAuditAndNotify } = require('../utils/auditAndNotify');
+const { analyzeCivicSubmission } = require('../utils/aiTriage');
 
 const router = express.Router();
 
@@ -155,6 +156,152 @@ router.get('/open-feed/public', async (req, res, next) => {
       portal: 'Janupkram Open Civic Feed',
       count: items.length,
       challenges: items,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// GET /api/challenges/sla/overdue (SLA Escalation Watchlist & High-Priority Unresolved)
+router.get('/sla/overdue', async (req, res, next) => {
+  try {
+    const thresholdDays = Number(req.query.days || 7);
+    const escalated = await Challenge.find({
+      status: { $nin: ['deployed', 'rejected'] },
+      'escalations.0': { $exists: true },
+    })
+      .select('title district category severity status escalations createdAt location')
+      .sort({ createdAt: 1 })
+      .limit(30)
+      .lean();
+
+    const now = Date.now();
+    const watchlist = escalated
+      .map((c) => {
+        const pendingEsc = (c.escalations || []).find(
+          (e) => e.status === 'dispatched'
+        );
+        const targetEsc = pendingEsc || c.escalations[0];
+        const ageHours = Math.max(
+          0,
+          Math.floor((now - new Date(targetEsc.createdAt || c.createdAt).getTime()) / 3600000)
+        );
+        const ageDays = Math.floor(ageHours / 24);
+        return {
+          _id: c._id,
+          title: c.title,
+          district: c.district,
+          category: c.category,
+          severity: c.severity,
+          status: c.status,
+          authorityName: targetEsc.authorityName,
+          authorityHandle: targetEsc.authorityHandle,
+          escalationStatus: targetEsc.status,
+          ageHours,
+          ageDays,
+          isOverdue: targetEsc.status === 'dispatched' && ageDays >= thresholdDays,
+          isCritical14d: targetEsc.status === 'dispatched' && ageDays >= 14,
+        };
+      })
+      .sort((a, b) => Number(b.isOverdue) - Number(a.isOverdue) || b.ageHours - a.ageHours);
+
+    return res.json({ thresholdDays, count: watchlist.length, watchlist });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// POST /api/challenges/ai-triage (Gemini / Rule-based Civic Moderation & Translation Preview)
+router.post('/ai-triage', verifyToken, upload.single('image'), async (req, res, next) => {
+  try {
+    const { title = '', description = '', category = 'other' } = req.body;
+    const triage = await analyzeCivicSubmission({
+      title,
+      description,
+      category,
+      imageBuffer: req.file?.buffer || null,
+      mimeType: req.file?.mimetype || '',
+    });
+    return res.json({ triage });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// POST /api/challenges/webhooks/civic-bot (WhatsApp / Telegram Zero-Login Bot Webhook)
+router.post('/webhooks/civic-bot', async (req, res, next) => {
+  try {
+    const configuredSecret = process.env.BOT_WEBHOOK_SECRET;
+    if (configuredSecret && req.headers['x-bot-secret'] !== configuredSecret) {
+      return res.status(401).json({ message: 'Invalid bot webhook secret.' });
+    }
+
+    const {
+      platform = 'WhatsApp',
+      senderPhone = '+91-98XXXXXX10',
+      senderName = 'Bot Citizen Reporter',
+      text = '',
+      title = '',
+      category = 'sanitation',
+      district = 'Phagwara',
+      lat = 31.2554,
+      lng = 75.7058,
+      mediaUrl = '',
+    } = req.body;
+
+    if (!text && !title) {
+      return res.status(400).json({ message: 'Report text or title is required.' });
+    }
+
+    const citizenUser =
+      (await User.findOne({ role: 'citizen' }).sort({ createdAt: 1 })) ||
+      (await User.findOne().sort({ createdAt: 1 }));
+    if (!citizenUser) {
+      return res.status(400).json({ message: 'No reporter account found in database.' });
+    }
+
+    const resolvedTitle = (title || text.slice(0, 75)).trim();
+    const resolvedDesc = `${text.trim() || resolvedTitle}\n\n[Ingested via ${platform} Civic Bot • Reporter: ${senderName} (${senderPhone})]`;
+    const triage = await analyzeCivicSubmission({
+      title: resolvedTitle,
+      description: resolvedDesc,
+      category,
+    });
+
+    const challenge = await Challenge.create({
+      title: resolvedTitle,
+      description: resolvedDesc,
+      category: triage.suggestedCategory || category,
+      severity: 'high',
+      district,
+      sourcePlatform: `${platform} Civic Bot`,
+      externalTicketId: `${platform.slice(0, 2).toUpperCase()}-${Date.now().toString().slice(-6)}`,
+      location: { type: 'Point', coordinates: [Number(lng) || 75.7058, Number(lat) || 31.2554] },
+      media: mediaUrl ? [String(mediaUrl).trim()] : [],
+      aiTriage: triage,
+      submittedBy: citizenUser._id,
+      status: 'submitted',
+    });
+
+    const admins = await User.find({ role: 'admin' }).select('_id');
+    await recordAuditAndNotify({
+      challengeId: challenge._id,
+      actor: citizenUser,
+      action: 'bot_webhook_submitted',
+      fromStatus: '',
+      toStatus: 'submitted',
+      remarks: `Auto-created from ${platform} Bot (${senderName}).`,
+      notifications: admins.map((a) => ({
+        recipientId: a._id,
+        title: `New ${platform} Bot Report`,
+        message: `"${resolvedTitle}" (${district}) arrived via ${platform} Bot.`,
+      })),
+    });
+
+    return res.status(201).json({
+      challenge,
+      trackingPath: `/challenges/${challenge._id}`,
+      botReply: `Namaste ${senderName}! Your issue is logged on Janupkram (Ref: ${challenge.externalTicketId}). Track live at /challenges/${challenge._id}`,
     });
   } catch (err) {
     return next(err);
@@ -349,6 +496,17 @@ router.post(
         });
       }
 
+      const firstImage = Array.isArray(req.files)
+        ? req.files.find((f) => f.mimetype?.startsWith('image/'))
+        : null;
+      const aiTriage = await analyzeCivicSubmission({
+        title,
+        description,
+        category,
+        imageBuffer: firstImage?.buffer || null,
+        mimeType: firstImage?.mimetype || '',
+      });
+
       const mediaUrls = [];
       if (Array.isArray(req.files) && req.files.length > 0) {
         for (const file of req.files) {
@@ -371,6 +529,8 @@ router.post(
           capturedAt: capturedAt ? new Date(capturedAt) : undefined,
           gpsVerified: gpsVerified === true || gpsVerified === 'true',
         },
+        aiTriage,
+        isOfflineSynced: req.body.isOfflineSynced === true || req.body.isOfflineSynced === 'true',
         location: { type: 'Point', coordinates: coords },
         media: mediaUrls,
         submittedBy: req.user.id,
@@ -822,6 +982,7 @@ router.post(
         capturedLat: !Number.isNaN(latNum) ? latNum : undefined,
         capturedLng: !Number.isNaN(lngNum) ? lngNum : undefined,
         distanceFromSiteMeters: distanceFromSiteMeters ?? undefined,
+        within50Meters: distanceFromSiteMeters !== null ? distanceFromSiteMeters <= 50 : undefined,
         submittedBy: req.user.id,
         submittedByName: req.user.name,
         submittedAt: new Date(),

@@ -115,6 +115,10 @@ export const Navbar = ({ onOpenSearch }) => {
               <option value="en">EN</option>
               <option value="hi">हिन्दी</option>
               <option value="pa">ਪੰਜਾਬੀ</option>
+              <option value="bn">বাংলা</option>
+              <option value="mr">मराठी</option>
+              <option value="ta">தமிழ்</option>
+              <option value="kn">ಕನ್ನಡ</option>
             </select>
           </div>
 

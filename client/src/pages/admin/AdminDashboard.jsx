@@ -35,6 +35,13 @@ export const AdminDashboard = () => {
   const [escalateOpen, setEscalateOpen] = useState(false);
   const [kycUsers, setKycUsers] = useState([]);
   const [kycFeedback, setKycFeedback] = useState({});
+  const [botForm, setBotForm] = useState({
+    platform: 'WhatsApp',
+    senderName: 'Ramesh Verma',
+    district: 'Phagwara',
+    text: 'Broken street drain overflowing near Chaheru gate causing mosquito breeding.',
+  });
+  const [botSending, setBotSending] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -138,6 +145,21 @@ export const AdminDashboard = () => {
       addToast(err.response?.data?.message || 'KYC decision failed.', 'error');
     } finally {
       setBusyId('');
+    }
+  };
+
+  const handleSimulateBotWebhook = async (e) => {
+    e.preventDefault();
+    setBotSending(true);
+    try {
+      const { data } = await api.post('/challenges/webhooks/civic-bot', botForm);
+      addToast(data.botReply || 'Bot report ingested!');
+      setStatusFilter('submitted');
+      await loadData();
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Bot webhook simulation failed.', 'error');
+    } finally {
+      setBotSending(false);
     }
   };
 
@@ -580,6 +602,59 @@ export const AdminDashboard = () => {
         onClose={() => setEscalateOpen(false)}
         onEscalated={() => loadData()}
       />
+
+      {/* WhatsApp / Telegram Civic Bot Webhook Simulator */}
+      <div className="glass-card p-5 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+              WhatsApp / Telegram Civic Bot Webhook (Zero-Login Field Intake)
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Endpoint: <code className="font-mono">POST /api/challenges/webhooks/civic-bot</code> — test instant grassroots intake from messaging apps.
+            </p>
+          </div>
+        </div>
+        <form onSubmit={handleSimulateBotWebhook} className="grid gap-2.5 sm:grid-cols-12">
+          <select
+            value={botForm.platform}
+            onChange={(e) => setBotForm((p) => ({ ...p, platform: e.target.value }))}
+            className="input-field sm:col-span-2 !py-2 !text-xs"
+          >
+            <option value="WhatsApp">WhatsApp</option>
+            <option value="Telegram">Telegram</option>
+          </select>
+          <input
+            type="text"
+            value={botForm.senderName}
+            onChange={(e) => setBotForm((p) => ({ ...p, senderName: e.target.value }))}
+            placeholder="Reporter Name"
+            className="input-field sm:col-span-2 !py-2 !text-xs"
+          />
+          <input
+            type="text"
+            value={botForm.district}
+            onChange={(e) => setBotForm((p) => ({ ...p, district: e.target.value }))}
+            placeholder="City / Hub"
+            className="input-field sm:col-span-2 !py-2 !text-xs"
+          />
+          <input
+            type="text"
+            required
+            value={botForm.text}
+            onChange={(e) => setBotForm((p) => ({ ...p, text: e.target.value }))}
+            placeholder="Incoming WhatsApp / Telegram civic message..."
+            className="input-field sm:col-span-4 !py-2 !text-xs"
+          />
+          <button
+            type="submit"
+            disabled={botSending}
+            className="btn-primary sm:col-span-2 !py-2 !px-3 !text-xs"
+          >
+            {botSending ? 'Ingesting...' : 'Test Bot Intake'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

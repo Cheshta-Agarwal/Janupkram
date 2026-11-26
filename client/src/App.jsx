@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
@@ -9,6 +9,7 @@ import CommandPalette from './components/CommandPalette';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import LandingPage from './pages/LandingPage';
+import EmbedMapPage from './pages/EmbedMapPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ChallengeDetailPage from './pages/ChallengeDetailPage';
@@ -22,28 +23,19 @@ import AnalyticsDashboard from './pages/admin/AnalyticsDashboard';
 import UniversityDashboard from './pages/university/UniversityDashboard';
 import IndustryDashboard from './pages/industry/IndustryDashboard';
 
-export function App() {
-  const [paletteOpen, setPaletteOpen] = useState(false);
-
-  useEffect(() => {
-    const handler = () => setPaletteOpen(true);
-    window.addEventListener('open-command-palette', handler);
-    return () => window.removeEventListener('open-command-palette', handler);
-  }, []);
+const AppShell = ({ paletteOpen, setPaletteOpen }) => {
+  const location = useLocation();
+  const isEmbed = location.pathname.startsWith('/embed/');
 
   return (
-    <ThemeProvider>
-      <LanguageProvider>
-        <ToastProvider>
-          <AuthProvider>
-            <BrowserRouter>
-              <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-                <Navbar onOpenSearch={() => setPaletteOpen(true)} />
-                <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-                <main>
-                  <Routes>
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/login" element={<LoginPage />} />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+      {!isEmbed && <Navbar onOpenSearch={() => setPaletteOpen(true)} />}
+      {!isEmbed && <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />}
+      <main>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/embed/map" element={<EmbedMapPage />} />
+          <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/challenges/:id" element={<ChallengeDetailPage />} />
                     <Route path="/profile/:id" element={<ProfilePage />} />
@@ -110,10 +102,29 @@ export function App() {
                       }
                     />
 
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                </main>
-              </div>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </div>
+  );
+};
+
+export function App() {
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setPaletteOpen(true);
+    window.addEventListener('open-command-palette', handler);
+    return () => window.removeEventListener('open-command-palette', handler);
+  }, []);
+
+  return (
+    <ThemeProvider>
+      <LanguageProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <AppShell paletteOpen={paletteOpen} setPaletteOpen={setPaletteOpen} />
             </BrowserRouter>
           </AuthProvider>
         </ToastProvider>

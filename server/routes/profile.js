@@ -104,7 +104,7 @@ router.post(
         return res.status(400).json({ message: 'Please upload a verification document (image or PDF).' });
       }
 
-      const uploaded = await uploadMediaFile(req.file, req);
+      const uploaded = await uploadMediaFile(req.file, req, { restricted: true });
       user.verificationDocuments.push({
         docType,
         docNumber: String(docNumber).trim(),

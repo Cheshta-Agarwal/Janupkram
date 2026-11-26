@@ -30,18 +30,25 @@ const ensureLocalUploadsDir = () => {
 /**
  * Uploads a Multer memory file either to Cloudinary (if configured)
  * or to local /uploads static folder as an automatic fallback.
+ * Supports restricted KYC folder placement via options.restricted.
  */
-const uploadMediaFile = async (file, req) => {
+const uploadMediaFile = async (file, req, options = {}) => {
   if (!file) return null;
+  const { folder = 'janupkram-portal', restricted = false } = options;
 
   if (isCloudinaryConfigured()) {
     const resourceType = file.mimetype.startsWith('image/') ? 'image' : 'raw';
+    const uploadParams = {
+      folder: restricted ? 'janupkram-kyc-private' : folder,
+      resource_type: resourceType,
+    };
+    if (restricted) {
+      uploadParams.type = 'authenticated';
+    }
+
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'janupkram-portal',
-          resource_type: resourceType,
-        },
+        uploadParams,
         (error, uploaded) => {
           if (error) return reject(error);
           resolve(uploaded);
@@ -55,6 +62,7 @@ const uploadMediaFile = async (file, req) => {
       publicId: result.public_id,
       filename: file.originalname,
       mimetype: file.mimetype,
+      restricted,
     };
   }
 

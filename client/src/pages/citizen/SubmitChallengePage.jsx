@@ -1,8 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Upload, AlertTriangle, CheckCircle2, X, Wand2, Mic, MicOff, Camera } from 'lucide-react';
+import { Send, Upload, AlertTriangle, CheckCircle2, X, Wand2, Mic, MicOff, Camera, Sparkles, WifiOff, RefreshCw } from 'lucide-react';
 import api from '../../api/axios';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
+import {
+  enqueueOfflineReport,
+  getOfflineReports,
+  removeOfflineReport,
+} from '../../utils/offlineQueue';
 import {
   CHALLENGE_CATEGORIES,
   CATEGORY_LABELS,
@@ -22,6 +28,7 @@ const KEYWORD_HINTS = [
 export const SubmitChallengePage = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { t } = useLanguage();
 
   const [form, setForm] = useState({
     title: '',
@@ -48,6 +55,28 @@ export const SubmitChallengePage = () => {
     capturedAt: '',
     gpsVerified: false,
   });
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
+  const [offlineQueue, setOfflineQueue] = useState([]);
+  const [syncingQueue, setSyncingQueue] = useState(false);
+  const [aiPreview, setAiPreview] = useState(null);
+  const [triaging, setTriaging] = useState(false);
+
+  const loadOfflineQueue = useCallback(async () => {
+    const items = await getOfflineReports();
+    setOfflineQueue(items);
+  }, []);
+
+  useEffect(() => {
+    loadOfflineQueue();
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, [loadOfflineQueue]);
 
   // Smart Category Auto-Suggestion from title + description
   const suggestedCategory = useMemo(() => {
@@ -160,9 +189,66 @@ export const SubmitChallengePage = () => {
     rec.start();
   };
 
+  const handleAiTriage = async () => {
+    if (!form.title.trim() && !form.description.trim()) {
+      addToast('Enter a title or description first for AI moderation & translation.', 'info');
+      return;
+    }
+    setTriaging(true);
+    try {
+      const fd = new FormData();
+      fd.append('title', form.title);
+      fd.append('description', form.description);
+      fd.append('category', form.category);
+      const firstImg = files.find((f) => f.type?.startsWith('image/'));
+      if (firstImg) fd.append('image', firstImg);
+      const { data } = await api.post('/challenges/ai-triage', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setAiPreview(data.triage);
+      addToast('AI Civic Triage complete!');
+    } catch {
+      addToast('Unable to run AI triage offline.', 'error');
+    } finally {
+      setTriaging(false);
+    }
+  };
+
+  const handleSyncOfflineQueue = async () => {
+    if (!isOnline || offlineQueue.length === 0) return;
+    setSyncingQueue(true);
+    let synced = 0;
+    try {
+      for (const item of offlineQueue) {
+        const fd = new FormData();
+        Object.entries(item.form || {}).forEach(([k, v]) => fd.append(k, String(v)));
+        fd.append('isOfflineSynced', 'true');
+        await api.post('/challenges', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        await removeOfflineReport(item.localId);
+        synced += 1;
+      }
+      await loadOfflineQueue();
+      addToast(`Synced ${synced} offline report(s) to Janupkram!`);
+    } catch {
+      addToast('Partial sync failure; remaining reports stay safely queued.', 'error');
+    } finally {
+      setSyncingQueue(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!navigator.onLine) {
+      await enqueueOfflineReport({ form, captureMeta });
+      await loadOfflineQueue();
+      addToast('Saved offline to IndexedDB! Auto-sync ready when internet returns.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const fd = new FormData();
@@ -175,10 +261,16 @@ export const SubmitChallengePage = () => {
       const { data } = await api.post('/challenges', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      addToast('Challenge submitted to State Innovation Cell!');
+      addToast('Challenge submitted to Janupkram Civic Grid!');
       navigate(`/challenges/${data.challenge._id}`);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit challenge.');
+      if (!err.response) {
+        await enqueueOfflineReport({ form, captureMeta });
+        await loadOfflineQueue();
+        addToast('Network unavailable — report saved offline in IndexedDB!', 'info');
+      } else {
+        setError(err.response?.data?.message || 'Failed to submit challenge.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -186,15 +278,34 @@ export const SubmitChallengePage = () => {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:py-8 sm:px-6 lg:px-8 space-y-6 animate-fade-up">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-          Submit a Societal Challenge
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-          Pin the exact location anywhere on OpenStreetMap, attach up to 5 photos, and route to
-          civic moderators.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+            {t('submitTitle')}
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            {t('submitSubtitle')}
+          </p>
+        </div>
+        {offlineQueue.length > 0 && (
+          <button
+            type="button"
+            disabled={!isOnline || syncingQueue}
+            onClick={handleSyncOfflineQueue}
+            className="btn-emerald !py-2 !px-3.5 !text-xs"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${syncingQueue ? 'animate-spin' : ''}`} />
+            {t('syncQueueBtn')} ({offlineQueue.length})
+          </button>
+        )}
       </div>
+
+      {!isOnline && (
+        <div className="flex items-center gap-2.5 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/60 px-4 py-3 text-xs font-semibold text-amber-800 dark:text-amber-300">
+          <WifiOff className="h-4 w-4 flex-shrink-0" />
+          Offline Mode Active: Submissions will save locally in IndexedDB and sync when connectivity returns.
+        </div>
+      )}
 
       {error && (
         <div className="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 px-4 py-3 text-xs font-medium text-rose-700 dark:text-rose-300">
@@ -331,6 +442,41 @@ export const SubmitChallengePage = () => {
               placeholder="Type or click 'Speak Issue' in Hindi, Punjabi, English, or regional languages..."
               className="input-field"
             />
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                disabled={triaging || !isOnline}
+                onClick={handleAiTriage}
+                className="btn-secondary !py-1.5 !px-3 !text-xs"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+                {triaging ? 'Analyzing...' : t('aiTriageBtn')}
+              </button>
+              {aiPreview && (
+                <span className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">
+                  {aiPreview.provider} • {aiPreview.isSafe ? 'Safe' : 'Flagged'} • Match:{' '}
+                  {CATEGORY_LABELS[aiPreview.suggestedCategory] || aiPreview.suggestedCategory}
+                </span>
+              )}
+            </div>
+            {aiPreview?.translatedEnglish && (
+              <div className="mt-2 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/40 p-3 text-xs space-y-1.5">
+                <p className="text-indigo-900 dark:text-indigo-200">
+                  <strong>English Translation Preview:</strong> {aiPreview.translatedEnglish}
+                </p>
+                {aiPreview.suggestedCategory && aiPreview.suggestedCategory !== form.category && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((prev) => ({ ...prev, category: aiPreview.suggestedCategory }))
+                    }
+                    className="rounded-lg bg-indigo-600 px-2.5 py-1 text-[11px] font-semibold text-white"
+                  >
+                    Switch Category to {CATEGORY_LABELS[aiPreview.suggestedCategory]}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Connected Reporting Portal / Social Discovery Source */}
@@ -511,8 +657,12 @@ export const SubmitChallengePage = () => {
           </div>
 
           <button type="submit" disabled={submitting} className="btn-primary w-full !py-3.5">
-            <Send className="h-4 w-4" />
-            {submitting ? 'Submitting Challenge...' : 'Submit Challenge'}
+            {isOnline ? <Send className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+            {submitting
+              ? 'Submitting Challenge...'
+              : isOnline
+              ? t('submitBtn')
+              : t('saveOfflineBtn')}
           </button>
         </div>
       </form>

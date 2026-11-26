@@ -404,6 +404,32 @@ export const ChallengeDetailPage = () => {
               {challenge.description}
             </p>
 
+            {challenge.aiTriage?.checked && (
+              <div className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/40 p-3.5 text-xs space-y-1">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 font-bold text-indigo-800 dark:text-indigo-200">
+                    <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                    AI Civic Triage ({challenge.aiTriage.provider})
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      challenge.aiTriage.isSafe
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                        : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                    }`}
+                  >
+                    {challenge.aiTriage.isSafe ? 'Content Safe' : 'Flagged'} •{' '}
+                    {challenge.aiTriage.categoryMatch ? 'Category Verified' : 'Check Category'}
+                  </span>
+                </div>
+                {challenge.aiTriage.translatedEnglish && (
+                  <p className="text-slate-700 dark:text-slate-300">
+                    <strong>English Summary:</strong> {challenge.aiTriage.translatedEnglish}
+                  </p>
+                )}
+              </div>
+            )}
+
             {challenge.rejectionReason && (
               <div className="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/50 p-4">
                 <p className="text-xs font-bold text-rose-800 dark:text-rose-300">
@@ -781,8 +807,17 @@ export const ChallengeDetailPage = () => {
                     &ldquo;After&rdquo; Proof submitted by {challenge.resolutionProof.submittedByName}
                   </span>
                   {challenge.resolutionProof.distanceFromSiteMeters !== undefined && (
-                    <span className="rounded-md bg-white dark:bg-slate-900 px-2 py-0.5 font-mono text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
-                      {challenge.resolutionProof.distanceFromSiteMeters}m from original site
+                    <span
+                      className={`rounded-md px-2 py-0.5 font-mono text-[11px] font-bold ${
+                        challenge.resolutionProof.distanceFromSiteMeters <= 50
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                      }`}
+                    >
+                      {challenge.resolutionProof.distanceFromSiteMeters}m from site{' '}
+                      {challenge.resolutionProof.distanceFromSiteMeters <= 50
+                        ? '(✓ Within 50m)'
+                        : '(>50m radius)'}
                     </span>
                   )}
                 </div>
