@@ -13,6 +13,8 @@ import {
   Sparkles,
   Share2,
   Printer,
+  Megaphone,
+  Globe2,
 } from 'lucide-react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +22,7 @@ import { useToast } from '../context/ToastContext';
 import StatusBadge from '../components/StatusBadge';
 import LifecycleStepper from '../components/LifecycleStepper';
 import MapPicker from '../components/MapPicker';
+import AuthorityEscalationModal from '../components/AuthorityEscalationModal';
 import { CATEGORY_LABELS, formatINR, formatDate } from '../utils/constants';
 
 export const ChallengeDetailPage = () => {
@@ -33,6 +36,7 @@ export const ChallengeDetailPage = () => {
   const [deliverableInputs, setDeliverableInputs] = useState({});
 
   const [pledgeOpen, setPledgeOpen] = useState(false);
+  const [escalateOpen, setEscalateOpen] = useState(false);
   const [pledgeForm, setPledgeForm] = useState({
     collaborationType: 'funding',
     title: '',
@@ -125,6 +129,17 @@ export const ChallengeDetailPage = () => {
     }
   };
 
+  const handleEscalationStatus = async (escId, status) => {
+    setActionBusy(escId);
+    try {
+      await api.patch(`/challenges/${id}/escalations/${escId}`, { status });
+      addToast(`Authority response marked ${status.replace(/_/g, ' ')}.`);
+      await loadDetail();
+    } finally {
+      setActionBusy('');
+    }
+  };
+
   if (loading) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-10">
@@ -173,6 +188,17 @@ export const ChallengeDetailPage = () => {
             <Printer className="h-3.5 w-3.5" />
             Export Dossier
           </button>
+
+          {isAuthenticated && ['admin', 'citizen', 'university'].includes(user?.role) && (
+            <button
+              type="button"
+              onClick={() => setEscalateOpen(true)}
+              className="btn-primary !py-2 !px-3.5 !text-xs"
+            >
+              <Megaphone className="h-3.5 w-3.5" />
+              Post to Concerned Authority
+            </button>
+          )}
 
           {user?.role === 'industry' &&
             ['validated', 'routed', 'team_formed', 'in_progress', 'piloted'].includes(
@@ -223,6 +249,23 @@ export const ChallengeDetailPage = () => {
                 <MapPin className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
                 {challenge.district}
               </span>
+              {challenge.sourcePlatform && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 px-2 py-0.5 font-semibold text-amber-800 dark:text-amber-300">
+                  <Globe2 className="h-3 w-3" />
+                  Source: {challenge.sourcePlatform}
+                  {challenge.externalTicketId ? ` (${challenge.externalTicketId})` : ''}
+                </span>
+              )}
+              {challenge.sourceUrl && (
+                <a
+                  href={challenge.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  View Original Thread / Portal <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
               <span>
                 Reported by{' '}
                 <strong className="text-slate-800 dark:text-slate-200">
@@ -560,6 +603,84 @@ export const ChallengeDetailPage = () => {
             />
           </div>
 
+          {/* Direct Authority Escalations Card */}
+          <div className="glass-card p-5 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Megaphone className="h-4 w-4 text-amber-500" />
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Authority Escalations ({challenge.escalations?.length || 0})
+                </h2>
+              </div>
+              {isAuthenticated && ['admin', 'citizen', 'university'].includes(user?.role) && (
+                <button
+                  type="button"
+                  onClick={() => setEscalateOpen(true)}
+                  className="btn-secondary !py-1 !px-2.5 !text-[11px] no-print"
+                >
+                  + Escalate
+                </button>
+              )}
+            </div>
+
+            {!challenge.escalations?.length ? (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Not yet escalated to municipal/government authorities. Click &ldquo;Post to Concerned Authority&rdquo; to dispatch via X, Email, or CPGRAMS.
+              </p>
+            ) : (
+              <div className="space-y-2.5">
+                {challenge.escalations.map((esc) => (
+                  <div
+                    key={esc._id}
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 p-3 space-y-1.5"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white">
+                        {esc.authorityName}
+                      </p>
+                      <StatusBadge
+                        status={
+                          esc.status === 'resolved_by_authority'
+                            ? 'completed'
+                            : esc.status === 'acknowledged'
+                            ? 'approved'
+                            : 'proposed'
+                        }
+                        size="xs"
+                      />
+                    </div>
+                    <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                      {esc.channel.toUpperCase()} {esc.authorityHandle ? `• ${esc.authorityHandle}` : ''}
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300">{esc.message}</p>
+                    {user?.role === 'admin' && esc.status !== 'resolved_by_authority' && (
+                      <div className="flex gap-2 pt-1 no-print">
+                        {esc.status === 'dispatched' && (
+                          <button
+                            type="button"
+                            disabled={actionBusy === esc._id}
+                            onClick={() => handleEscalationStatus(esc._id, 'acknowledged')}
+                            className="btn-secondary !py-1 !px-2 !text-[10px]"
+                          >
+                            Mark Acknowledged
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          disabled={actionBusy === esc._id}
+                          onClick={() => handleEscalationStatus(esc._id, 'resolved_by_authority')}
+                          className="btn-emerald !py-1 !px-2 !text-[10px]"
+                        >
+                          Resolved by Authority
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="glass-card p-5 space-y-4">
             <div className="flex items-center gap-2">
               <History className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
@@ -682,6 +803,12 @@ export const ChallengeDetailPage = () => {
           </div>
         </div>
       )}
+      <AuthorityEscalationModal
+        challenge={challenge}
+        open={escalateOpen}
+        onClose={() => setEscalateOpen(false)}
+        onEscalated={() => loadDetail()}
+      />
     </div>
   );
 };

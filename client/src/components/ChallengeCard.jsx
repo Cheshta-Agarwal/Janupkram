@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, ThumbsUp, GraduationCap, ArrowRight } from 'lucide-react';
+import { MapPin, ThumbsUp, GraduationCap, ArrowRight, Globe2, Megaphone } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import { CATEGORY_LABELS } from '../utils/constants';
 
@@ -46,6 +46,18 @@ export const ChallengeCard = ({
             <MapPin className="h-3 w-3 text-indigo-500 dark:text-indigo-400" />
             {challenge.district}
           </span>
+          {challenge.sourcePlatform && challenge.sourcePlatform !== 'Direct Report' && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 px-2 py-1 font-semibold text-amber-700 dark:text-amber-300">
+              <Globe2 className="h-3 w-3" />
+              {challenge.sourcePlatform}
+            </span>
+          )}
+          {challenge.escalations?.length > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/60 px-2 py-1 font-semibold text-rose-700 dark:text-rose-300">
+              <Megaphone className="h-3 w-3" />
+              Escalated ({challenge.escalations.length})
+            </span>
+          )}
           {challenge.proposalsCount > 0 && (
             <span className="inline-flex items-center rounded-md bg-sky-50 dark:bg-sky-950/60 border border-sky-100 dark:border-sky-800/60 px-2 py-1 font-medium text-sky-700 dark:text-sky-300">
               {challenge.proposalsCount} Proposal(s)

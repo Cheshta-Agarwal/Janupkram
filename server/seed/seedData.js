@@ -61,41 +61,47 @@ const populateSeed = async () => {
 
   const challenges = await Challenge.insertMany([
     {
-      title: 'IoT Groundwater Salinity & Nitrate Monitoring Grid for Rural Wells',
+      title: 'Raw Sewage Overflow & Monsoon Waterlogging on ORR Bellandur–Ecospace Road',
       description:
-        'Community tube wells across peri-urban agrarian belts report rising TDS and nitrate levels post-monsoon. Need an affordable solar LoRaWAN sensor attachment with multilingual public water-safety alerts.',
+        'Discovered via r/bangalore citizen threads: recurring raw sewage leaks and blocked stormwater drains (rajakaluves) turn the Outer Ring Road service lanes near Bellandur and Ecospace into flooded, foul-smelling bottlenecks even after moderate rain. Needs automated drain-choke telemetry and decentralized bio-filtration.',
       category: 'sanitation',
       severity: 'high',
-      district: 'Phagwara',
-      location: { type: 'Point', coordinates: [75.7058, 31.2554] },
+      district: 'Bengaluru',
+      sourcePlatform: 'Reddit • r/bangalore',
+      sourceUrl: 'https://www.reddit.com/r/bangalore/',
+      externalTicketId: 'BBMP-ORR-2026-412',
+      location: { type: 'Point', coordinates: [77.6762, 12.9279] },
       media: [],
       submittedBy: citizenAarav._id,
       assignedUniversity: univLpu._id,
       status: 'in_progress',
       upvotes: [citizenAarav._id, univLpu._id, industryPartner._id],
+      escalations: [
+        {
+          authorityName: 'BBMP Chief Commissioner & BWSSB',
+          authorityHandle: '@BBMPComm',
+          department: 'Stormwater & Underground Drainage Cell',
+          channel: 'x_post',
+          message:
+            'Urgent civic escalation: Chronic sewage backflow & clogged stormwater inlets on Bellandur ORR service road affecting daily commuters. Request desilting & UGD inspection.',
+          portalUrl: 'https://pgportal.gov.in/',
+          escalatedBy: adminNodal._id,
+          escalatedByName: adminNodal.name,
+          status: 'acknowledged',
+        },
+      ],
     },
     {
-      title: 'Modular Solar Cold-Storage Chamber for Smallholder Perishable Produce',
+      title: 'Severe PM2.5 Spikes, Unpaved Road Dust & GRAP Bottlenecks in East Delhi',
       description:
-        'Small farmers lose up to 30% of fresh vegetables and fruits in summer transit due to lack of decentralized pre-cooling chambers near local mandis and highway collection hubs.',
-      category: 'agriculture',
-      severity: 'high',
-      district: 'Phagwara',
-      location: { type: 'Point', coordinates: [75.7685, 31.2218] },
-      media: [],
-      submittedBy: citizenAarav._id,
-      assignedUniversity: univLpu._id,
-      status: 'piloted',
-      upvotes: [citizenAarav._id, univLpu._id, industryPartner._id],
-    },
-    {
-      title: 'Hyperlocal PM2.5 & Heat-Island Micro-Sensor Mesh for Urban Transit Corridors',
-      description:
-        'High-density commuter junctions face unmonitored particulate spikes and heat stress. Community clinics need real-time micro-climate alerts to protect outdoor workers and commuters.',
+        'Reported across r/delhi community discussions: persistent hazardous PM2.5 levels combined with road dust (PM10) from uncarpeted edges and construction corridors cause severe respiratory distress. Needs low-cost hyperlocal air-quality micro-sensors with multilingual health alerts and targeted anti-smog misting.',
       category: 'environment',
       severity: 'high',
       district: 'New Delhi',
-      location: { type: 'Point', coordinates: [77.209, 28.6139] },
+      sourcePlatform: 'Reddit • r/delhi',
+      sourceUrl: 'https://www.reddit.com/r/delhi/',
+      externalTicketId: 'CPGRAMS-DL-9081',
+      location: { type: 'Point', coordinates: [77.3152, 28.6469] },
       media: [],
       submittedBy: citizenAarav._id,
       assignedUniversity: univLpu._id,
@@ -103,12 +109,30 @@ const populateSeed = async () => {
       upvotes: [citizenAarav._id, univLpu._id],
     },
     {
-      title: 'Non-Invasive Optical Hemoglobin Screening Device for Community Health Camps',
+      title: 'Washed-Out Patchwork Potholes & Unfinished Utility Digging in Pune',
       description:
-        'Grassroots health workers need a reusable, zero-consumable optical screening tool integrated with a mobile nutrition registry for maternal and adolescent anemia drives.',
-      category: 'healthcare',
+        'Flagged repeatedly on r/pune: roads dug up for underground utility pipelines remain un-resurfaced for months, while pre-monsoon patchwork washes away after the first rain, causing commuter accidents and massive traffic gridlock.',
+      category: 'infrastructure',
+      severity: 'high',
+      district: 'Pune',
+      sourcePlatform: 'Reddit • r/pune',
+      sourceUrl: 'https://www.reddit.com/r/pune/',
+      externalTicketId: 'PMC-RD-2026-118',
+      location: { type: 'Point', coordinates: [73.7389, 18.5913] },
+      media: [],
+      submittedBy: citizenAarav._id,
+      status: 'validated',
+      upvotes: [citizenAarav._id, industryPartner._id],
+    },
+    {
+      title: 'Blocked Drainage, Open Manholes & Sewage Stagnation in Jaipur Residential Lanes',
+      description:
+        'Highlighted in r/jaipur civic grievance threads: damaged drainage slabs and clogged residential sewer lines cause wastewater overflow onto neighborhood streets, creating vector-borne health risks.',
+      category: 'sanitation',
       severity: 'high',
       district: 'Jaipur',
+      sourcePlatform: 'Reddit • r/jaipur',
+      sourceUrl: 'https://www.reddit.com/r/jaipur/',
       location: { type: 'Point', coordinates: [75.7873, 26.9124] },
       media: [],
       submittedBy: citizenAarav._id,
@@ -117,38 +141,43 @@ const populateSeed = async () => {
       upvotes: [citizenAarav._id, univLpu._id, industryPartner._id],
     },
     {
-      title: 'Edge-AI Smart Pedestrian & Blind-Curve Warning Beacons on Arterial Roads',
+      title: 'Illegal Nighttime Roadside Garbage Dumping & Overflowing Ward Bins (Madiwala)',
       description:
-        'Unlit arterial crossings near schools and industrial zones experience frequent night-time collision risks. Need solar thermal/radar warning beacons for local traffic teams.',
-      category: 'infrastructure',
-      severity: 'medium',
-      district: 'Pune',
-      location: { type: 'Point', coordinates: [73.8567, 18.5204] },
-      media: [],
-      submittedBy: citizenAarav._id,
-      status: 'validated',
-      upvotes: [citizenAarav._id, industryPartner._id],
-    },
-    {
-      title: 'Offline Multilingual Interactive STEM & Coding Lab Kits for Public Schools',
-      description:
-        'Under-resourced secondary schools across semi-urban and rural regions lack internet-independent hands-on STEM simulation kits in regional languages.',
-      category: 'education',
+        'Reported via X (Twitter) & r/bangalore civic feeds: irregular garbage pickup and nighttime dumping along empty street corners in Madiwala / Maruthi Nagar create chronic sanitation blackspots.',
+      category: 'sanitation',
       severity: 'medium',
       district: 'Bengaluru',
-      location: { type: 'Point', coordinates: [77.5946, 12.9716] },
+      sourcePlatform: 'X (Twitter) • Civic Thread',
+      sourceUrl: 'https://x.com/search?q=BBMP%20garbage%20Madiwala',
+      location: { type: 'Point', coordinates: [77.6174, 12.9226] },
       media: [],
       submittedBy: citizenAarav._id,
       status: 'validated',
       upvotes: [citizenAarav._id],
     },
     {
+      title: 'Modular Solar Cold-Storage Chamber for Smallholder Perishable Produce',
+      description:
+        'Small farmers around the Phagwara–Jalandhar agrarian belt lose up to 30% of fresh vegetables in summer transit due to lack of decentralized pre-cooling chambers near local mandis.',
+      category: 'agriculture',
+      severity: 'high',
+      district: 'Phagwara',
+      sourcePlatform: 'Direct Report',
+      location: { type: 'Point', coordinates: [75.7685, 31.2218] },
+      media: [],
+      submittedBy: citizenAarav._id,
+      assignedUniversity: univLpu._id,
+      status: 'piloted',
+      upvotes: [citizenAarav._id, univLpu._id, industryPartner._id],
+    },
+    {
       title: 'Smart Storm-Drain Plastic Trap & Waterlogging Alert Sensor near GT Road',
       description:
-        'Plastic debris chokes arterial storm-water culverts near Law Gate & GT Road before peak rainstorms, causing flash waterlogging for students and local commuters.',
+        'Plastic debris chokes arterial storm-water culverts near Law Gate & GT Road (LPU corridor) before peak rainstorms, causing flash waterlogging for students and commuters.',
       category: 'sanitation',
       severity: 'high',
       district: 'Phagwara',
+      sourcePlatform: 'Direct Report',
       location: { type: 'Point', coordinates: [75.7118, 31.2612] },
       media: [],
       submittedBy: citizenAarav._id,
@@ -158,10 +187,13 @@ const populateSeed = async () => {
     {
       title: 'Overflowing Roadside Culvert & Greywater Stagnation near Chaheru Market',
       description:
-        'Repeated drainage blockage and stagnant greywater along Chaheru market stretch (~850m from the GT Road storm-drain culvert), raising vector-borne health risks.',
+        'Reported on Swachhata-MoHUA: repeated drainage blockage and stagnant greywater along Chaheru market stretch (~850m from the GT Road storm-drain culvert), raising vector-borne health risks.',
       category: 'sanitation',
       severity: 'medium',
       district: 'Phagwara',
+      sourcePlatform: 'Swachhata-MoHUA',
+      sourceUrl: 'https://sbmurban.org/',
+      externalTicketId: 'SBM-1969-7741',
       location: { type: 'Point', coordinates: [75.7165, 31.2661] },
       media: [],
       submittedBy: citizenAarav._id,
@@ -176,39 +208,39 @@ const populateSeed = async () => {
     {
       challengeId: ch1._id,
       universityId: univLpu._id,
-      teamName: 'LPU AquaSense Student Collective',
+      teamName: 'LPU UrbanDrain Sensor Collective',
       facultyMentor: 'Prof. Anurag Sharma',
       members: [
         { name: 'Rohan Malhotra', role: 'IoT Hardware Lead', department: 'ECE (LPU)' },
-        { name: 'Ananya Verma', role: 'Cloud & Telemetry Lead', department: 'CSE (LPU)' },
-        { name: 'Harpreet Singh', role: 'Field Testing Lead', department: 'Civil Engg (LPU)' },
+        { name: 'Ananya Verma', role: 'Cloud & GIS Lead', department: 'CSE (LPU)' },
+        { name: 'Harpreet Singh', role: 'Hydrology Design', department: 'Civil Engg (LPU)' },
       ],
       abstract:
-        'Low-cost solar LoRaWAN TDS/nitrate sensing node paired with an automated multi-stage bio-sand & activated carbon filtration cartridge.',
+        'Solar ultrasonic silt-level & sewage-overflow LoRaWAN nodes mounted inside arterial storm-drain inlets to trigger pre-emptive municipal desilting alerts.',
       methodology:
-        'Baseline water assay -> LPU FabLab PCB & enclosure fabrication -> 3-site community deployment and operator training.',
-      expectedImpact: 'Real-time water safety alerts and clean drinking water for 5,000+ residents.',
-      estimatedBudget: 380000,
+        'Baseline drain flow mapping -> LPU FabLab IP68 ultrasonic sensor housing -> live GIS alert webhook integration with civic teams.',
+      expectedImpact: 'Prevent chronic ORR waterlogging and provide 6-hour early choke warnings.',
+      estimatedBudget: 420000,
       status: 'approved',
       milestones: [
         {
-          title: 'Baseline Hydro-Chemical Assay',
-          description: 'Collect 25 borehole samples and calibrate nitrate sensors.',
+          title: 'Drain Hotspot GIS & Silt Assay',
+          description: 'Map 15 critical Bellandur–ORR storm-drain inlets.',
           dueDate: new Date('2026-10-15'),
           status: 'completed',
-          deliverableUrl: 'https://github.com/lpu-janupkram/aquasense-assay',
+          deliverableUrl: 'https://github.com/lpu-janupkram/urbandrain-gis',
           completedAt: new Date('2026-10-14'),
         },
         {
-          title: 'Solar LoRa Node & Cartridge Prototype',
-          description: 'Lab validation across 500 filtration cycles.',
+          title: 'IP68 Ultrasonic LoRaWAN Sensor Pod',
+          description: 'Bench & wet-well endurance calibration.',
           dueDate: new Date('2026-11-25'),
           status: 'in_progress',
           deliverableUrl: '',
         },
         {
-          title: 'Community Deployment & Handover',
-          description: 'Install 3 field stations with local civic volunteers.',
+          title: 'Municipal Ward Pilot Handover',
+          description: 'Deploy 5 live nodes with automated alert dashboard.',
           dueDate: new Date('2026-12-20'),
           status: 'pending',
           deliverableUrl: '',
@@ -216,7 +248,7 @@ const populateSeed = async () => {
       ],
     },
     {
-      challengeId: ch2._id,
+      challengeId: ch6._id,
       universityId: univLpu._id,
       teamName: 'LPU AgriCool Innovators',
       facultyMentor: 'Prof. Anurag Sharma',
@@ -266,14 +298,14 @@ const populateSeed = async () => {
       proposalId: prop1._id,
       industryId: industryPartner._id,
       collaborationType: 'funding',
-      title: 'CSR Safe Water Telemetry Grant',
+      title: 'CSR Urban Stormwater Sensor Grant',
       commitmentDetails:
-        'CSR grant covering sensor PCB fabrication and certified water-quality lab testing.',
-      fundingAmount: 320000,
+        'CSR grant covering IP68 LoRa sensor nodes and field calibration.',
+      fundingAmount: 350000,
       status: 'accepted',
     },
     {
-      challengeId: ch2._id,
+      challengeId: ch6._id,
       proposalId: prop2._id,
       industryId: industryPartner._id,
       collaborationType: 'field_deployment',
@@ -287,8 +319,8 @@ const populateSeed = async () => {
       challengeId: ch4._id,
       industryId: industryPartner._id,
       collaborationType: 'mentorship',
-      title: 'Medical Device QA & Field Rollout Support',
-      commitmentDetails: 'Completed clinical QA mentoring and pilot funding for community camps.',
+      title: 'Sanitation Sensor Pilot Support (Jaipur)',
+      commitmentDetails: 'Completed engineering mentoring and ward pilot support.',
       fundingAmount: 280000,
       status: 'completed',
     },
@@ -303,17 +335,17 @@ const populateSeed = async () => {
       action: 'submitted',
       fromStatus: '',
       toStatus: 'submitted',
-      remarks: 'Submitted by Aarav Sharma in Phagwara (sanitation).',
+      remarks: 'Imported from Reddit • r/bangalore (Bengaluru ORR Bellandur).',
     },
     {
       challengeId: ch1._id,
       actorId: adminNodal._id,
       actorName: adminNodal.name,
       actorRole: 'admin',
-      action: 'routed_to_university',
+      action: 'escalated_to_authority',
       fromStatus: 'validated',
-      toStatus: 'routed',
-      remarks: 'Routed to Lovely Professional University (LPU) Innovation Studio.',
+      toStatus: 'validated',
+      remarks: 'Dispatched to BBMP Chief Commissioner & BWSSB (@BBMPComm) via X_POST.',
     },
     {
       challengeId: ch1._id,
@@ -323,7 +355,7 @@ const populateSeed = async () => {
       action: 'proposal_submitted',
       fromStatus: 'routed',
       toStatus: 'in_progress',
-      remarks: 'LPU AquaSense Student Collective formed with 3 milestones.',
+      remarks: 'LPU UrbanDrain Sensor Collective formed with 3 milestones.',
     },
     {
       challengeId: ch7._id,
@@ -343,35 +375,35 @@ const populateSeed = async () => {
       action: 'submitted',
       fromStatus: '',
       toStatus: 'submitted',
-      remarks: 'Submitted near Chaheru Market (~850m from GT Road Culvert).',
+      remarks: 'Linked from Swachhata-MoHUA (SBM-1969-7741), ~850m from GT Road Culvert.',
     },
   ]);
 
   await Notification.insertMany([
     {
       recipientId: adminNodal._id,
-      title: '2 Pending Drainage Reports Within 2km',
+      title: '2 Pending Phagwara Drainage Reports Within 2km',
       message:
         'Two sanitation challenges near Phagwara GT Road are within 850m. Run 2km Duplicate Check.',
       relatedChallengeId: ch8._id,
     },
     {
       recipientId: univLpu._id,
-      title: 'New Challenge Routed: Urban PM2.5 Sensor Mesh',
-      message: 'Hyperlocal PM2.5 & Heat-Island Micro-Sensor Mesh awaits your LPU student R&D team.',
-      relatedChallengeId: ch3._id,
+      title: 'New Issue Routed from r/delhi: East Delhi PM2.5 Spikes',
+      message: 'Severe PM2.5 & road dust challenge awaits your LPU student R&D team.',
+      relatedChallengeId: ch2._id,
     },
     {
       recipientId: citizenAarav._id,
-      title: 'Milestone 1 Completed by LPU AquaSense Team',
-      message: 'LPU student squad completed Baseline Hydro-Chemical Assay.',
+      title: 'BBMP Escalation Acknowledged on ORR Waterlogging',
+      message: 'Authority escalation (@BBMPComm) was acknowledged and LPU team is active.',
       relatedChallengeId: ch1._id,
     },
     {
       recipientId: industryPartner._id,
-      title: 'New Validated Challenges in Pune & Bengaluru',
-      message: 'Road Safety Beacons & Offline STEM Kits are open for CSR collaboration.',
-      relatedChallengeId: ch5._id,
+      title: 'New Validated Issues from r/pune & X (Bengaluru)',
+      message: 'Pune road potholes & Madiwala waste blackspots are open for CSR collaboration.',
+      relatedChallengeId: ch3._id,
     },
   ]);
 };
@@ -380,13 +412,12 @@ const ensureSeeded = async () => {
   const count = await User.countDocuments();
   const hasLegacySeed = await User.exists({ email: 'ramesh.citizen@jharkhand.in' });
   const hasCurrentSeed = await User.exists({ email: 'citizen@janupkram.org' });
+  const hasPreDiscoverySeed = await Challenge.exists({
+    title: 'IoT Groundwater Salinity & Nitrate Monitoring Grid for Rural Wells',
+  });
 
-  if (count === 0 || (hasLegacySeed && !hasCurrentSeed)) {
-    console.log(
-      count === 0
-        ? 'Empty database detected. Running idempotent Janupkram seed...'
-        : 'Legacy seed detected. Upgrading to Janupkram Pan-India seed...'
-    );
+  if (count === 0 || (hasLegacySeed && !hasCurrentSeed) || hasPreDiscoverySeed) {
+    console.log('Refreshing database with discovered India Reddit/X + LPU Janupkram seed...');
     await Promise.all([
       User.deleteMany({}),
       Challenge.deleteMany({}),

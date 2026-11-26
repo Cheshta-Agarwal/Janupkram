@@ -10,11 +10,13 @@ import {
   AlertTriangle,
   ExternalLink,
   Star,
+  Megaphone,
 } from 'lucide-react';
 import api from '../../api/axios';
 import { useToast } from '../../context/ToastContext';
 import StatusBadge from '../../components/StatusBadge';
 import MapPicker from '../../components/MapPicker';
+import AuthorityEscalationModal from '../../components/AuthorityEscalationModal';
 import { CATEGORY_LABELS } from '../../utils/constants';
 
 export const AdminDashboard = () => {
@@ -30,6 +32,7 @@ export const AdminDashboard = () => {
   const [scanning, setScanning] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [busyId, setBusyId] = useState('');
+  const [escalateOpen, setEscalateOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -255,12 +258,22 @@ export const AdminDashboard = () => {
                       {selected.district} • Reported by {selected.submittedBy?.name}
                     </p>
                   </div>
-                  <Link
-                    to={`/challenges/${selected._id}`}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
-                  >
-                    360° View <ExternalLink className="h-3.5 w-3.5" />
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEscalateOpen(true)}
+                      className="btn-secondary !py-1.5 !px-3 !text-xs"
+                    >
+                      <Megaphone className="h-3.5 w-3.5 text-amber-500" />
+                      Escalate to Authority
+                    </button>
+                    <Link
+                      to={`/challenges/${selected._id}`}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      360° View <ExternalLink className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
                 </div>
 
                 <p className="text-xs leading-relaxed text-slate-700 dark:text-slate-300">
@@ -455,6 +468,12 @@ export const AdminDashboard = () => {
           </div>
         </div>
       )}
+      <AuthorityEscalationModal
+        challenge={selected}
+        open={escalateOpen}
+        onClose={() => setEscalateOpen(false)}
+        onEscalated={() => loadData()}
+      />
     </div>
   );
 };

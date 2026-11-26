@@ -22,6 +22,29 @@ const CHALLENGE_STATUSES = [
   'deployed',
 ];
 
+const escalationSchema = new mongoose.Schema(
+  {
+    authorityName: { type: String, required: true, trim: true },
+    authorityHandle: { type: String, default: '', trim: true },
+    department: { type: String, default: '', trim: true },
+    channel: {
+      type: String,
+      enum: ['x_post', 'cpgrams', 'email', 'municipal_portal'],
+      default: 'cpgrams',
+    },
+    message: { type: String, required: true, trim: true },
+    portalUrl: { type: String, default: '' },
+    escalatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    escalatedByName: { type: String, default: '' },
+    status: {
+      type: String,
+      enum: ['dispatched', 'acknowledged', 'resolved_by_authority'],
+      default: 'dispatched',
+    },
+  },
+  { timestamps: true }
+);
+
 const challengeSchema = new mongoose.Schema(
   {
     title: {
@@ -62,6 +85,25 @@ const challengeSchema = new mongoose.Schema(
     },
     media: {
       type: [String],
+      default: [],
+    },
+    sourcePlatform: {
+      type: String,
+      default: 'Direct Report',
+      trim: true,
+    },
+    sourceUrl: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    externalTicketId: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    escalations: {
+      type: [escalationSchema],
       default: [],
     },
     submittedBy: {

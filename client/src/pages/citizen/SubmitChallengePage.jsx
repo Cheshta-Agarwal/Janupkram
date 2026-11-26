@@ -29,6 +29,9 @@ export const SubmitChallengePage = () => {
     category: 'sanitation',
     severity: 'high',
     district: 'Phagwara',
+    sourcePlatform: 'Direct Report',
+    sourceUrl: '',
+    externalTicketId: '',
     latitude: 31.2554,
     longitude: 75.7058,
   });
@@ -232,6 +235,59 @@ export const SubmitChallengePage = () => {
               placeholder="Describe the ground challenge, impacted communities, and constraints..."
               className="input-field"
             />
+          </div>
+
+          {/* Connected Reporting Portal / Social Discovery Source */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 p-4 space-y-3">
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              Connect External Report / Discovery Source (Optional)
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                  Source Platform
+                </label>
+                <select
+                  value={form.sourcePlatform}
+                  onChange={(e) => setForm({ ...form, sourcePlatform: e.target.value })}
+                  className="input-field !py-2 !text-xs"
+                >
+                  <option value="Direct Report">Direct Report</option>
+                  <option value="Reddit • r/india">Reddit (r/india)</option>
+                  <option value="Reddit • r/bangalore">Reddit (r/bangalore)</option>
+                  <option value="Reddit • r/delhi">Reddit (r/delhi)</option>
+                  <option value="Reddit • r/pune">Reddit (r/pune)</option>
+                  <option value="X (Twitter) • Civic Thread">X (Twitter)</option>
+                  <option value="CPGRAMS">CPGRAMS (pgportal.gov.in)</option>
+                  <option value="Swachhata-MoHUA">Swachhata-MoHUA (1969)</option>
+                  <option value="Municipal App">City Municipal App</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                  Post / Grievance Link
+                </label>
+                <input
+                  type="url"
+                  value={form.sourceUrl}
+                  onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
+                  placeholder="https://reddit.com/r/..."
+                  className="input-field !py-2 !text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                  Existing Ticket / Ref ID
+                </label>
+                <input
+                  type="text"
+                  value={form.externalTicketId}
+                  onChange={(e) => setForm({ ...form, externalTicketId: e.target.value })}
+                  placeholder="e.g., CPGRAMS-2026-..."
+                  className="input-field !py-2 !text-xs"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Image Preview Uploader */}

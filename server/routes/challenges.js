@@ -274,6 +274,9 @@ router.post(
         category,
         severity = 'medium',
         district = 'Phagwara',
+        sourcePlatform = 'Direct Report',
+        sourceUrl = '',
+        externalTicketId = '',
         latitude,
         longitude,
       } = req.body;
@@ -314,6 +317,9 @@ router.post(
         category,
         severity,
         district,
+        sourcePlatform: String(sourcePlatform || 'Direct Report').trim(),
+        sourceUrl: String(sourceUrl || '').trim(),
+        externalTicketId: String(externalTicketId || '').trim(),
         location: { type: 'Point', coordinates: coords },
         media: mediaUrls,
         submittedBy: req.user.id,
@@ -525,6 +531,124 @@ router.patch('/:id/status', verifyToken, allowRoles('admin', 'university'), asyn
     return next(err);
   }
 });
+
+// POST /api/challenges/:id/escalate (Log direct escalation to concerned govt/municipal authority)
+router.post(
+  '/:id/escalate',
+  verifyToken,
+  allowRoles('admin', 'citizen', 'university'),
+  async (req, res, next) => {
+    try {
+      const {
+        authorityName,
+        authorityHandle = '',
+        department = '',
+        channel = 'cpgrams',
+        message,
+        portalUrl = '',
+      } = req.body;
+
+      if (!authorityName || !message) {
+        return res
+          .status(400)
+          .json({ message: 'authorityName and escalation message are required.' });
+      }
+
+      const challenge = await Challenge.findById(req.params.id);
+      if (!challenge) return res.status(404).json({ message: 'Challenge not found.' });
+
+      const escalation = {
+        authorityName: String(authorityName).trim(),
+        authorityHandle: String(authorityHandle).trim(),
+        department: String(department).trim(),
+        channel,
+        message: String(message).trim(),
+        portalUrl: String(portalUrl).trim(),
+        escalatedBy: req.user.id,
+        escalatedByName: req.user.name,
+        status: 'dispatched',
+      };
+
+      challenge.escalations.unshift(escalation);
+      await challenge.save();
+
+      const admins = await User.find({ role: 'admin' }).select('_id');
+      await recordAuditAndNotify({
+        challengeId: challenge._id,
+        actor: req.user,
+        action: 'escalated_to_authority',
+        fromStatus: challenge.status,
+        toStatus: challenge.status,
+        remarks: `Dispatched to ${escalation.authorityName} (${channel.toUpperCase()})${
+          escalation.authorityHandle ? ` ${escalation.authorityHandle}` : ''
+        }.`,
+        notifications: [
+          {
+            recipientId: challenge.submittedBy,
+            title: 'Issue Escalated to Concerned Authority',
+            message: `"${challenge.title}" was escalated to ${escalation.authorityName} via ${channel.toUpperCase()}.`,
+          },
+          ...admins.map((a) => ({
+            recipientId: a._id,
+            title: 'Authority Escalation Logged',
+            message: `${req.user.name} escalated "${challenge.title}" to ${escalation.authorityName}.`,
+          })),
+        ],
+      });
+
+      return res.status(201).json({
+        escalation: challenge.escalations[0],
+        escalations: challenge.escalations,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+// PATCH /api/challenges/:id/escalations/:escId (Admin marks authority acknowledgement/resolution)
+router.patch(
+  '/:id/escalations/:escId',
+  verifyToken,
+  allowRoles('admin'),
+  async (req, res, next) => {
+    try {
+      const { status } = req.body;
+      if (!['dispatched', 'acknowledged', 'resolved_by_authority'].includes(status)) {
+        return res.status(400).json({ message: 'Invalid escalation status.' });
+      }
+
+      const challenge = await Challenge.findById(req.params.id);
+      if (!challenge) return res.status(404).json({ message: 'Challenge not found.' });
+
+      const esc = challenge.escalations.id(req.params.escId);
+      if (!esc) return res.status(404).json({ message: 'Escalation entry not found.' });
+
+      esc.status = status;
+      await challenge.save();
+
+      await recordAuditAndNotify({
+        challengeId: challenge._id,
+        actor: req.user,
+        action: 'authority_escalation_updated',
+        fromStatus: challenge.status,
+        toStatus: challenge.status,
+        remarks: `Authority escalation (${esc.authorityName}) marked as ${status.replace(/_/g, ' ')}.`,
+        notifications: [
+          {
+            recipientId: challenge.submittedBy,
+            title: 'Authority Response Updated',
+            message: `${esc.authorityName} status for "${challenge.title}": ${status.replace(/_/g, ' ')}.`,
+          },
+        ],
+      });
+
+      return res.json({ escalation: esc, escalations: challenge.escalations });
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
 
 // POST /api/challenges/:id/upvote
 router.post('/:id/upvote', verifyToken, async (req, res, next) => {
