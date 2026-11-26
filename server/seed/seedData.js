@@ -378,8 +378,23 @@ const populateSeed = async () => {
 
 const ensureSeeded = async () => {
   const count = await User.countDocuments();
-  if (count === 0) {
-    console.log('Empty database detected. Running idempotent Janupkram seed...');
+  const hasLegacySeed = await User.exists({ email: 'ramesh.citizen@jharkhand.in' });
+  const hasCurrentSeed = await User.exists({ email: 'citizen@janupkram.org' });
+
+  if (count === 0 || (hasLegacySeed && !hasCurrentSeed)) {
+    console.log(
+      count === 0
+        ? 'Empty database detected. Running idempotent Janupkram seed...'
+        : 'Legacy seed detected. Upgrading to Janupkram Pan-India seed...'
+    );
+    await Promise.all([
+      User.deleteMany({}),
+      Challenge.deleteMany({}),
+      Proposal.deleteMany({}),
+      Partnership.deleteMany({}),
+      Notification.deleteMany({}),
+      ActivityLog.deleteMany({}),
+    ]);
     await populateSeed();
     console.log('Auto-seed complete.');
   }
