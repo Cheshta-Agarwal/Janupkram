@@ -22,7 +22,7 @@ router.post('/register', async (req, res, next) => {
       password,
       role = 'citizen',
       organizationName = '',
-      district = 'Ranchi',
+      district = 'Phagwara',
       specializations = [],
     } = req.body;
 
@@ -65,7 +65,7 @@ router.post('/register', async (req, res, next) => {
       passwordHash,
       role,
       organizationName: String(organizationName).trim(),
-      district: String(district || 'Ranchi').trim(),
+      district: String(district || 'Phagwara').trim(),
       specializations: parsedSpecs,
     });
 

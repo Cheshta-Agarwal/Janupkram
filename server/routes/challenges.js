@@ -273,7 +273,7 @@ router.post(
         description,
         category,
         severity = 'medium',
-        district = 'Ranchi',
+        district = 'Phagwara',
         latitude,
         longitude,
       } = req.body;

@@ -39,7 +39,7 @@ const uploadMediaFile = async (file, req) => {
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
-          folder: 'sih26043-jharkhand-portal',
+          folder: 'janupkram-portal',
           resource_type: resourceType,
         },
         (error, uploaded) => {

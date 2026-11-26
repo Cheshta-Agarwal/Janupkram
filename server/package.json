@@ -1,7 +1,7 @@
 {
   "name": "sih26043-portal-server",
   "version": "1.0.0",
-  "description": "Backend API for Societal Innovation Collaboration Portal (SIH26043 - Govt of Jharkhand)",
+  "description": "Backend API for Janupkram — Pan-India Societal Innovation Collaboration Portal by LPU Students",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -104,8 +104,8 @@ export const IndustryDashboard = () => {
             Industry & CSR Innovation Marketplace
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            {user?.organizationName || user?.name} • Partner on validated & active university R&D
-            projects across Jharkhand.
+            {user?.organizationName || user?.name} • Partner on validated & active campus R&D
+            projects across India.
           </p>
         </div>
         <Link to="/analytics" className="btn-secondary">

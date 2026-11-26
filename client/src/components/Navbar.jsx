@@ -56,11 +56,11 @@ export const Navbar = ({ onOpenSearch }) => {
                   Janupkram
                 </span>
                 <span className="hidden sm:inline-flex rounded-md bg-emerald-50 dark:bg-emerald-950/70 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  SIH26043
+                  By LPU Students
                 </span>
               </div>
               <p className="hidden sm:block text-[11px] text-slate-500 dark:text-slate-400">
-                Jharkhand Societal Innovation Grid
+                Open Societal Innovation Grid
               </p>
             </div>
           </Link>

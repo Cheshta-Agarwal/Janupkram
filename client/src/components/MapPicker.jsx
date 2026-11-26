@@ -69,8 +69,8 @@ const RecenterMap = ({ lat, lng, zoom }) => {
 };
 
 export const MapPicker = ({
-  latitude = 23.3441,
-  longitude = 85.3096,
+  latitude = 31.2554,
+  longitude = 75.7058,
   onChange,
   readOnly = false,
   height = '320px',
@@ -86,8 +86,8 @@ export const MapPicker = ({
   const activeLayerKey = layerMode === 'auto' ? (isDark ? 'dark' : 'street') : layerMode;
   const activeLayer = TILE_LAYERS[activeLayerKey] || TILE_LAYERS.street;
 
-  const lat = Number(latitude) || 23.3441;
-  const lng = Number(longitude) || 85.3096;
+  const lat = Number(latitude) || 31.2554;
+  const lng = Number(longitude) || 75.7058;
 
   const handleUseMyLocation = () => {
     if (!navigator.geolocation || !onChange) return;

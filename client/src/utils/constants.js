@@ -18,17 +18,19 @@ export const CATEGORY_LABELS = {
   other: 'Other',
 };
 
-export const JHARKHAND_DISTRICTS = [
-  { name: 'Ranchi', lat: 23.3441, lng: 85.3096 },
-  { name: 'Dhanbad', lat: 23.7957, lng: 86.4304 },
-  { name: 'Jamshedpur', lat: 22.8046, lng: 86.2029 },
-  { name: 'Bokaro', lat: 23.6693, lng: 86.1511 },
-  { name: 'Hazaribagh', lat: 23.9925, lng: 85.3637 },
-  { name: 'Dumka', lat: 24.2685, lng: 87.2496 },
-  { name: 'Giridih', lat: 24.1913, lng: 86.3005 },
-  { name: 'Deoghar', lat: 24.4852, lng: 86.6948 },
-  { name: 'Gumla', lat: 23.0442, lng: 84.5382 },
-  { name: 'Khunti', lat: 23.0715, lng: 85.2788 },
+export const REGION_HUBS = [
+  { name: 'Phagwara', label: 'Phagwara / LPU Belt', lat: 31.2554, lng: 75.7058 },
+  { name: 'New Delhi', label: 'New Delhi / NCR', lat: 28.6139, lng: 77.209 },
+  { name: 'Bengaluru', label: 'Bengaluru', lat: 12.9716, lng: 77.5946 },
+  { name: 'Pune', label: 'Pune', lat: 18.5204, lng: 73.8567 },
+  { name: 'Hyderabad', label: 'Hyderabad', lat: 17.385, lng: 78.4867 },
+  { name: 'Jaipur', label: 'Jaipur', lat: 26.9124, lng: 75.7873 },
+  { name: 'Mumbai', label: 'Mumbai', lat: 19.076, lng: 72.8777 },
+  { name: 'Chandigarh', label: 'Chandigarh', lat: 30.7333, lng: 76.7794 },
+  { name: 'Chennai', label: 'Chennai', lat: 13.0827, lng: 80.2707 },
+  { name: 'Kolkata', label: 'Kolkata', lat: 22.5726, lng: 88.3639 },
+  { name: 'Lucknow', label: 'Lucknow', lat: 26.8467, lng: 80.9462 },
+  { name: 'Bhubaneswar', label: 'Bhubaneswar', lat: 20.2961, lng: 85.8245 },
 ];
 
 export const LIFECYCLE_STEPS = [
@@ -50,8 +52,8 @@ export const ROLE_DASHBOARD_PATH = {
 
 export const ROLE_LABELS = {
   citizen: 'Citizen / Community',
-  admin: 'Govt. Nodal Officer',
-  university: 'University / R&D',
+  admin: 'Nodal Moderator',
+  university: 'University / LPU R&D',
   industry: 'Industry / CSR',
 };
 

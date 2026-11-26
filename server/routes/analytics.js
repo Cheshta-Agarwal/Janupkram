@@ -97,13 +97,13 @@ router.get('/dashboard', verifyToken, allowRoles('admin', 'industry'), async (re
     }
     const byCategory = Array.from(domainMap.values()).sort((a, b) => b.count - a.count);
 
-    // District breakdown (including Ranchi, Dhanbad, Jamshedpur, Bokaro, Hazaribagh, Dumka)
-    const coreDistricts = ['Ranchi', 'Dhanbad', 'Jamshedpur', 'Bokaro', 'Hazaribagh', 'Dumka'];
+    // City / Region breakdown across Pan-India hubs
+    const coreDistricts = ['Phagwara', 'New Delhi', 'Bengaluru', 'Pune', 'Hyderabad', 'Jaipur'];
     const districtMap = new Map(
       coreDistricts.map((d) => [d, { district: d, total: 0, active: 0, deployed: 0 }])
     );
     for (const c of challenges) {
-      const d = c.district || 'Ranchi';
+      const d = c.district || 'Phagwara';
       if (!districtMap.has(d)) {
         districtMap.set(d, { district: d, total: 0, active: 0, deployed: 0 });
       }

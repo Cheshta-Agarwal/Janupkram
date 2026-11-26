@@ -8,17 +8,17 @@ import { ROLE_DASHBOARD_PATH } from '../utils/constants';
 const DEMO_ACCOUNTS = [
   {
     label: 'Citizen',
-    sub: 'Ramesh Mahato (Ranchi)',
-    email: 'ramesh.citizen@jharkhand.in',
+    sub: 'Aarav Sharma (Phagwara / Open Community)',
+    email: 'citizen@janupkram.org',
     password: 'Password@123',
     icon: Users,
     badge:
       'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/70 dark:text-indigo-300 dark:border-indigo-800',
   },
   {
-    label: 'Govt. Admin',
-    sub: 'Dr. Arvind Kumar (Nodal Officer)',
-    email: 'admin@jharkhand.gov.in',
+    label: 'Nodal Moderator',
+    sub: 'Dr. Meenakshi Nair (Central Moderation)',
+    email: 'admin@janupkram.org',
     password: 'Password@123',
     icon: ShieldCheck,
     badge:
@@ -26,7 +26,7 @@ const DEMO_ACCOUNTS = [
   },
   {
     label: 'University (LPU)',
-    sub: 'Lovely Professional University',
+    sub: 'Lovely Professional University Innovation Studio',
     email: 'innovation@lpu.co.in',
     password: 'Password@123',
     icon: GraduationCap,
@@ -34,9 +34,9 @@ const DEMO_ACCOUNTS = [
       'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/70 dark:text-violet-300 dark:border-violet-800',
   },
   {
-    label: 'University (BIT Mesra)',
-    sub: 'BIT Mesra, Ranchi',
-    email: 'research@bitmesra.ac.in',
+    label: 'Partner University',
+    sub: 'National University R&D Alliance',
+    email: 'research@campus-hub.edu.in',
     password: 'Password@123',
     icon: GraduationCap,
     badge:
@@ -44,8 +44,8 @@ const DEMO_ACCOUNTS = [
   },
   {
     label: 'Industry Partner',
-    sub: 'Tata Steel Foundation & Tech Labs',
-    email: 'csr@tatasteel-collab.in',
+    sub: 'Bharat Tech & CSR Foundation',
+    email: 'csr@industry-collab.org',
     password: 'Password@123',
     icon: Building2,
     badge:
@@ -110,7 +110,7 @@ export const LoginPage = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@jharkhand.gov.in"
+                placeholder="name@janupkram.org"
                 className="input-field"
               />
             </div>

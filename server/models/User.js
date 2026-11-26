@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema(
     },
     district: {
       type: String,
-      default: 'Ranchi',
+      default: 'Phagwara',
       trim: true,
     },
     specializations: {

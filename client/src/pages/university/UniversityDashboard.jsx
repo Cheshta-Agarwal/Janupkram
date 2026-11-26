@@ -151,8 +151,8 @@ export const UniversityDashboard = () => {
           University R&D Collaboration Hub
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-          {user?.organizationName || user?.name} • Manage routed Jharkhand challenges, build teams
-          & proposals, execute milestones, and accept industry partnerships.
+          {user?.organizationName || user?.name} • Manage routed societal challenges, build LPU &
+          campus R&D teams, execute milestones, and accept industry partnerships.
         </p>
       </div>
 

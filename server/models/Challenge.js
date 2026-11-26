@@ -46,7 +46,7 @@ const challengeSchema = new mongoose.Schema(
     district: {
       type: String,
       required: true,
-      default: 'Ranchi',
+      default: 'Phagwara',
       trim: true,
     },
     location: {

@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import { ROLE_DASHBOARD_PATH, JHARKHAND_DISTRICTS, formatINR } from '../utils/constants';
+import { ROLE_DASHBOARD_PATH, REGION_HUBS, formatINR } from '../utils/constants';
 import ChallengeCard from '../components/ChallengeCard';
 import MapPicker from '../components/MapPicker';
 
@@ -22,7 +22,7 @@ export const LandingPage = () => {
   const { isAuthenticated, user } = useAuth();
   const [overview, setOverview] = useState(null);
   const [challenges, setChallenges] = useState([]);
-  const [districtFilter, setDistrictFilter] = useState('ALL');
+  const [regionFilter, setRegionFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,11 +44,11 @@ export const LandingPage = () => {
   }, []);
 
   const visibleChallenges =
-    districtFilter === 'ALL'
+    regionFilter === 'ALL'
       ? challenges
-      : challenges.filter((c) => c.district === districtFilter);
+      : challenges.filter((c) => c.district === regionFilter);
 
-  const focusedDistrict = JHARKHAND_DISTRICTS.find((d) => d.name === districtFilter);
+  const focusedRegion = REGION_HUBS.find((d) => d.name === regionFilter);
 
   const mapMarkers = visibleChallenges
     .filter((c) => Array.isArray(c.location?.coordinates) && c.location.coordinates.length === 2)
@@ -64,31 +64,31 @@ export const LandingPage = () => {
   const actors = [
     {
       icon: Users,
-      role: 'Citizens & Panchayats',
+      role: 'Citizens & Communities',
       color:
         'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-400 dark:border-indigo-800/60',
-      desc: 'Pin local sanitation, agri, health, or infrastructure challenges on the Jharkhand map with field evidence.',
+      desc: 'Anyone anywhere can pin local sanitation, agri, health, or infrastructure issues on the open map with photo evidence.',
     },
     {
       icon: ShieldCheck,
-      role: 'Govt. Nodal Officers',
+      role: 'Civic Nodal Moderators',
       color:
         'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800/60',
-      desc: 'Run 2km spatial duplicate checks, validate submissions, and route to specialization-matched universities.',
+      desc: 'Run 2km spatial duplicate checks, validate reports, and route challenges to specialization-matched campus R&D teams.',
     },
     {
       icon: GraduationCap,
-      role: 'Universities & R&D Labs',
+      role: 'LPU & Partner Campuses',
       color:
         'bg-violet-50 text-violet-600 border-violet-100 dark:bg-violet-950/60 dark:text-violet-400 dark:border-violet-800/60',
-      desc: 'Form student-faculty teams, build milestone proposals, and advance solutions to field pilots.',
+      desc: 'Student innovators from Lovely Professional University (LPU) & partner universities build real prototypes via tracked milestones.',
     },
     {
       icon: Building2,
       role: 'Industry & CSR Partners',
       color:
         'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800/60',
-      desc: 'Sponsor vetted civic R&D with CSR grants, lab prototyping support, and field deployment.',
+      desc: 'Sponsor open societal R&D with CSR grants, engineering mentorship, lab prototyping, and field deployment.',
     },
   ];
 
@@ -104,18 +104,16 @@ export const LandingPage = () => {
             <div className="lg:col-span-7 animate-fade-up">
               <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/70 px-3 py-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
                 <Sparkles className="h-3.5 w-3.5" />
-                Smart India Hackathon 2026 • SIH26043 • Govt. of Jharkhand
+                Built by LPU Students • Open Societal Innovation Platform for Everyone
               </div>
               <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl leading-[1.12]">
                 <span className="bg-gradient-to-r from-indigo-600 via-violet-600 to-emerald-600 bg-clip-text text-transparent">
                   Janupkram
                 </span>{' '}
-                — Societal Innovation Portal for Jharkhand.
+                — Open Societal Innovation Collaboration Grid.
               </h1>
               <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed text-slate-600 dark:text-slate-300">
-                Connecting grassroots civic challenges across Ranchi, Dhanbad, Jamshedpur, Bokaro,
-                and Hazaribagh with university R&D teams (LPU, BIT Mesra) and Industry CSR partners
-                through audited milestones.
+                Engineered by college student innovators at <strong>Lovely Professional University (LPU)</strong> for everyone—connecting real-world community problems anywhere with campus R&D labs, civic moderators, and industry CSR partners through verifiable milestones.
               </p>
 
               <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -148,7 +146,7 @@ export const LandingPage = () => {
                   {overview ? overview.totalChallenges : '—'}
                 </p>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Geotagged in Jharkhand
+                  Geotagged across regions
                 </p>
               </div>
 
@@ -218,43 +216,43 @@ export const LandingPage = () => {
         </div>
       </section>
 
-      {/* Interactive District Explorer & Spatial Map */}
+      {/* Interactive Spatial Explorer */}
       <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8 space-y-8">
         <div className="glass-card p-4 sm:p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                Interactive Jharkhand Spatial Explorer
+                Interactive Pan-India Spatial Explorer
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Filter by district to focus the OpenStreetMap grid and live challenges.
+                Open to every city & campus — filter by region to focus the OpenStreetMap grid.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              {['ALL', 'Ranchi', 'Dhanbad', 'Jamshedpur', 'Bokaro', 'Hazaribagh'].map((d) => (
+              {['ALL', 'Phagwara', 'New Delhi', 'Bengaluru', 'Pune', 'Jaipur'].map((d) => (
                 <button
                   key={d}
                   type="button"
-                  onClick={() => setDistrictFilter(d)}
+                  onClick={() => setRegionFilter(d)}
                   className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 ${
-                    districtFilter === d
+                    regionFilter === d
                       ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/25'
                       : 'border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                   }`}
                 >
-                  {d === 'ALL' ? 'All Districts' : d}
+                  {d === 'ALL' ? 'All Regions' : d === 'Phagwara' ? 'Phagwara (LPU)' : d}
                 </button>
               ))}
             </div>
           </div>
 
           <MapPicker
-            latitude={focusedDistrict ? focusedDistrict.lat : 23.45}
-            longitude={focusedDistrict ? focusedDistrict.lng : 85.65}
-            zoom={focusedDistrict ? 11 : 8}
+            latitude={focusedRegion ? focusedRegion.lat : 23.2599}
+            longitude={focusedRegion ? focusedRegion.lng : 77.4126}
+            zoom={focusedRegion ? 11 : 5}
             readOnly={true}
-            height="320px"
+            height="340px"
             showCoordBar={true}
             markers={mapMarkers}
           />
@@ -263,9 +261,9 @@ export const LandingPage = () => {
         <div>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              {districtFilter === 'ALL'
-                ? 'Featured Jharkhand Challenges'
-                : `${districtFilter} Challenges (${visibleChallenges.length})`}
+              {regionFilter === 'ALL'
+                ? 'Featured Societal Challenges'
+                : `${regionFilter} Challenges (${visibleChallenges.length})`}
             </h2>
             <Link
               to="/login"
@@ -298,7 +296,7 @@ export const LandingPage = () => {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 text-xs text-slate-500 dark:text-slate-400 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300">
             <Landmark className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-            Janupkram • Government of Jharkhand Societal Innovation Collaboration Portal (SIH26043)
+            Janupkram • Built by Lovely Professional University (LPU) Student Innovators — Open for Everyone
           </div>
           <p>OpenStreetMap + MongoDB 2dsphere Spatial Grid</p>
         </div>

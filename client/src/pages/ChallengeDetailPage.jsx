@@ -221,7 +221,7 @@ export const ChallengeDetailPage = () => {
             <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
               <span className="inline-flex items-center gap-1">
                 <MapPin className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                {challenge.district}, Jharkhand
+                {challenge.district}
               </span>
               <span>
                 Reported by{' '}

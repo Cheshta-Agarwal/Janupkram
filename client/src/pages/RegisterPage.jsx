@@ -4,7 +4,7 @@ import { UserPlus, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import {
-  JHARKHAND_DISTRICTS,
+  REGION_HUBS,
   CHALLENGE_CATEGORIES,
   CATEGORY_LABELS,
   ROLE_DASHBOARD_PATH,
@@ -21,7 +21,7 @@ export const RegisterPage = () => {
     password: '',
     role: 'citizen',
     organizationName: '',
-    district: 'Ranchi',
+    district: 'Phagwara',
     specializations: [],
   });
   const [error, setError] = useState('');
@@ -124,16 +124,16 @@ export const RegisterPage = () => {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Jharkhand District
+                City / Region
               </label>
               <select
                 value={form.district}
                 onChange={(e) => setForm({ ...form, district: e.target.value })}
                 className="input-field"
               >
-                {JHARKHAND_DISTRICTS.map((d) => (
+                {REGION_HUBS.map((d) => (
                   <option key={d.name} value={d.name}>
-                    {d.name}
+                    {d.label}
                   </option>
                 ))}
               </select>
@@ -148,7 +148,7 @@ export const RegisterPage = () => {
                 required={orgRequired}
                 value={form.organizationName}
                 onChange={(e) => setForm({ ...form, organizationName: e.target.value })}
-                placeholder="e.g., NIT Jamshedpur / Tata Steel CSR"
+                placeholder="e.g., Lovely Professional University / Civic Forum"
                 className="input-field"
               />
             </div>

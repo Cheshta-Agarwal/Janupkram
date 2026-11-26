@@ -2,7 +2,7 @@
   "name": "janupkram",
   "version": "1.0.0",
   "private": true,
-  "description": "Janupkram — Societal Innovation Collaboration Portal (SIH26043 - Govt. of Jharkhand)",
+  "description": "Janupkram — Pan-India Societal Innovation Collaboration Portal crafted by LPU Students",
   "scripts": {
     "build": "npm --prefix server install && npm --prefix client install --include=dev && npm --prefix client run build",
     "start": "node server/server.js",

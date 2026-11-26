@@ -6,7 +6,7 @@ import { useToast } from '../../context/ToastContext';
 import {
   CHALLENGE_CATEGORIES,
   CATEGORY_LABELS,
-  JHARKHAND_DISTRICTS,
+  REGION_HUBS,
 } from '../../utils/constants';
 import MapPicker from '../../components/MapPicker';
 
@@ -28,9 +28,9 @@ export const SubmitChallengePage = () => {
     description: '',
     category: 'sanitation',
     severity: 'high',
-    district: 'Ranchi',
-    latitude: 23.3441,
-    longitude: 85.3096,
+    district: 'Phagwara',
+    latitude: 31.2554,
+    longitude: 75.7058,
   });
 
   const [files, setFiles] = useState([]);
@@ -80,7 +80,7 @@ export const SubmitChallengePage = () => {
   }, [files]);
 
   const handleDistrictChange = (districtName) => {
-    const found = JHARKHAND_DISTRICTS.find((d) => d.name === districtName);
+    const found = REGION_HUBS.find((d) => d.name === districtName);
     setForm((prev) => ({
       ...prev,
       district: districtName,
@@ -122,8 +122,8 @@ export const SubmitChallengePage = () => {
           Submit a Societal Challenge
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-          Pin the exact Jharkhand location on OpenStreetMap, attach up to 5 photos, and route to
-          the Nodal Officer.
+          Pin the exact location anywhere on OpenStreetMap, attach up to 5 photos, and route to
+          civic moderators.
         </p>
       </div>
 
@@ -204,16 +204,16 @@ export const SubmitChallengePage = () => {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                District *
+                City / Region *
               </label>
               <select
                 value={form.district}
                 onChange={(e) => handleDistrictChange(e.target.value)}
                 className="input-field"
               >
-                {JHARKHAND_DISTRICTS.map((d) => (
+                {REGION_HUBS.map((d) => (
                   <option key={d.name} value={d.name}>
-                    {d.name}
+                    {d.label}
                   </option>
                 ))}
               </select>
@@ -288,7 +288,7 @@ export const SubmitChallengePage = () => {
           <div className="glass-card p-5 space-y-3">
             <div>
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                Pin Location on Jharkhand Map *
+                Pin Exact Challenge Location *
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Click anywhere on the map to drop a pin or use GPS coordinates.

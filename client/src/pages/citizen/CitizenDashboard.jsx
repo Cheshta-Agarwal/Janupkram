@@ -81,7 +81,7 @@ export const CitizenDashboard = () => {
             Citizen Civic Workspace
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Track your submitted Jharkhand challenges with live lifecycle progress and upvote
+            Track your submitted societal challenges with live lifecycle progress and upvote
             community priorities.
           </p>
         </div>

@@ -252,7 +252,7 @@ export const AdminDashboard = () => {
                       {selected.title}
                     </h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {selected.district}, Jharkhand • Reported by {selected.submittedBy?.name}
+                      {selected.district} • Reported by {selected.submittedBy?.name}
                     </p>
                   </div>
                   <Link
@@ -286,8 +286,8 @@ export const AdminDashboard = () => {
                   </div>
 
                   <MapPicker
-                    latitude={selected.location?.coordinates?.[1] || 23.3441}
-                    longitude={selected.location?.coordinates?.[0] || 85.3096}
+                    latitude={selected.location?.coordinates?.[1] || 31.2554}
+                    longitude={selected.location?.coordinates?.[0] || 75.7058}
                     readOnly={true}
                     zoom={14}
                     radiusMeters={2000}

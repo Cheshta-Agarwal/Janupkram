@@ -151,7 +151,7 @@ export const CommandPalette = ({ open, onClose }) => {
           {/* Live Challenge Search */}
           <div>
             <p className="px-2 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              {loading ? 'Searching Jharkhand Grid...' : `Civic Challenges (${results.length})`}
+              {loading ? 'Searching Janupkram Grid...' : `Civic Challenges (${results.length})`}
             </p>
             <div className="space-y-1">
               {results.map((ch) => (

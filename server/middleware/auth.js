@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const getJwtSecret = () =>
-  process.env.JWT_SECRET || 'sih26043_jharkhand_local_dev_secret_2026';
+  process.env.JWT_SECRET || 'janupkram_lpu_local_dev_secret_2026';
 
 const verifyToken = async (req, res, next) => {
   try {

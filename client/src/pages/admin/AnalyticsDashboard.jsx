@@ -57,7 +57,7 @@ export const AnalyticsDashboard = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'jharkhand-sih26043-analytics.csv';
+    a.download = 'janupkram-analytics-report.csv';
     a.click();
     URL.revokeObjectURL(url);
     addToast('Analytics CSV report exported!');
@@ -106,7 +106,7 @@ export const AnalyticsDashboard = () => {
             Executive Government Analytics
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Pipeline conversion funnel, domain distribution, Jharkhand district breakdown, and
+            Pipeline conversion funnel, domain distribution, regional breakdown, and
             university R&D leaderboard.
           </p>
         </div>
@@ -224,10 +224,10 @@ export const AnalyticsDashboard = () => {
       {/* District Breakdown */}
       <div className="glass-card p-5 sm:p-6">
         <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-          District-Wise Challenge Breakdown
+          Regional Challenge Breakdown
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-          Ranchi, Dhanbad, Jamshedpur, Bokaro, Hazaribagh, and Dumka
+          Phagwara (LPU), New Delhi, Bengaluru, Pune, Hyderabad, and Jaipur
         </p>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">

@@ -42,7 +42,7 @@ app.use('/uploads', express.static(uploadsDir));
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    service: 'Janupkram — SIH26043 Societal Innovation Collaboration Portal API',
+    service: 'Janupkram — Societal Innovation Collaboration Portal API',
     timestamp: new Date().toISOString(),
   });
 });
