@@ -37,8 +37,8 @@ const TILE_LAYERS = {
   },
   dark: {
     label: 'Dark',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attr: '&copy; OpenStreetMap &copy; CARTO',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attr: '&copy; OpenStreetMap contributors',
   },
   topo: {
     label: 'Terrain',
@@ -150,14 +150,23 @@ export const MapPicker = ({
         </div>
       )}
 
-      <div style={{ height: expanded ? '460px' : height }} className="w-full relative transition-all duration-300">
+      <div
+        style={{ height: expanded ? '460px' : height }}
+        className={`w-full relative transition-all duration-300 ${
+          activeLayerKey === 'dark' ? 'dark-map-tiles' : ''
+        }`}
+      >
         <MapContainer
           center={[lat, lng]}
           zoom={zoom}
           scrollWheelZoom={true}
           style={{ height: '100%', width: '100%' }}
         >
-          <TileLayer key={activeLayerKey} attribution={activeLayer.attr} url={activeLayer.url} />
+          <TileLayer
+            key={activeLayer.url}
+            attribution={activeLayer.attr}
+            url={activeLayer.url}
+          />
           <RecenterMap lat={lat} lng={lng} zoom={zoom} />
           {!readOnly && <ClickSelector onPick={onChange} />}
 

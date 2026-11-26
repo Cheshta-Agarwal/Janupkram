@@ -43,6 +43,14 @@
   z-index: 1;
 }
 
+.dark .leaflet-container {
+  background-color: #0f172a;
+}
+
+.dark-map-tiles .leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(92%);
+}
+
 .dark .leaflet-popup-content-wrapper,
 .dark .leaflet-popup-tip {
   background-color: #0f172a;
