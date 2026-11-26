@@ -1,4 +1,6 @@
-require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -17,9 +19,12 @@ const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false,
   })
 );
 app.use(
@@ -49,9 +54,22 @@ app.use('/api/partnerships', partnershipRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-app.use((req, res) => {
+app.use('/api', (req, res) => {
   res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
 });
+
+const clientDistDir = path.join(__dirname, '..', 'client', 'dist');
+const clientIndexPath = path.join(clientDistDir, 'index.html');
+if (fs.existsSync(clientIndexPath)) {
+  app.use(express.static(clientDistDir));
+  app.get('*', (req, res) => {
+    res.sendFile(clientIndexPath);
+  });
+} else {
+  app.use((req, res) => {
+    res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
+  });
+}
 
 app.use(errorHandler);
 

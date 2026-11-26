@@ -25,6 +25,12 @@ npm run dev
 
 Open **http://localhost:5173** in your browser.
 
+## Single-Service Production Build (Render)
+- **Root Directory:** *(leave blank)*
+- **Build Command:** `npm run build`
+- **Start Command:** `npm start`
+- **Required Env Vars:** `MONGO_URI`, `JWT_SECRET`
+
 ## Seeded Demo Accounts (Password: `Password@123`)
 | Role | Organization / Name | Email |
 | :--- | :--- | :--- |

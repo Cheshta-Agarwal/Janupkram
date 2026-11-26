@@ -1,0 +1,11 @@
+{
+  "name": "janupkram",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Janupkram — Societal Innovation Collaboration Portal (SIH26043 - Govt. of Jharkhand)",
+  "scripts": {
+    "build": "npm --prefix server install && npm --prefix client install --include=dev && npm --prefix client run build",
+    "start": "node server/server.js",
+    "seed": "npm --prefix server run seed"
+  }
+}
