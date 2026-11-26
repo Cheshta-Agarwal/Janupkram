@@ -16,6 +16,7 @@ const proposalRoutes = require('./routes/proposals');
 const partnershipRoutes = require('./routes/partnerships');
 const analyticsRoutes = require('./routes/analytics');
 const notificationRoutes = require('./routes/notifications');
+const profileRoutes = require('./routes/profile');
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use('/api/proposals', proposalRoutes);
 app.use('/api/partnerships', partnershipRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/profile', profileRoutes);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });

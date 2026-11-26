@@ -3,7 +3,7 @@ const Partnership = require('../models/Partnership');
 const Challenge = require('../models/Challenge');
 const Proposal = require('../models/Proposal');
 const User = require('../models/User');
-const { verifyToken, allowRoles } = require('../middleware/auth');
+const { verifyToken, allowRoles, requireVerified } = require('../middleware/auth');
 const { recordAuditAndNotify } = require('../utils/auditAndNotify');
 
 const router = express.Router();
@@ -34,8 +34,8 @@ router.get('/', verifyToken, async (req, res, next) => {
   }
 });
 
-// POST /api/partnerships (industry only)
-router.post('/', verifyToken, allowRoles('industry'), async (req, res, next) => {
+// POST /api/partnerships (verified industry only)
+router.post('/', verifyToken, allowRoles('industry'), requireVerified, async (req, res, next) => {
   try {
     const {
       challengeId,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Upload, AlertTriangle, CheckCircle2, X, Wand2 } from 'lucide-react';
+import { Send, Upload, AlertTriangle, CheckCircle2, X, Wand2, Mic, MicOff, Camera } from 'lucide-react';
 import api from '../../api/axios';
 import { useToast } from '../../context/ToastContext';
 import {
@@ -41,6 +41,13 @@ export const SubmitChallengePage = () => {
   const [nearbyMatches, setNearbyMatches] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [listening, setListening] = useState(false);
+  const [voiceLang, setVoiceLang] = useState('en-IN');
+  const [captureMeta, setCaptureMeta] = useState({
+    capturedViaLiveCamera: false,
+    capturedAt: '',
+    gpsVerified: false,
+  });
 
   // Smart Category Auto-Suggestion from title + description
   const suggestedCategory = useMemo(() => {
@@ -97,6 +104,62 @@ export const SubmitChallengePage = () => {
     setFiles(selected);
   };
 
+  const handleLiveCameraCapture = (e) => {
+    const camFiles = Array.from(e.target.files || []);
+    if (!camFiles.length) return;
+    setFiles((prev) => [...prev, ...camFiles].slice(0, 5));
+    const ts = camFiles[0].lastModified ? new Date(camFiles[0].lastModified).toISOString() : new Date().toISOString();
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setForm((prev) => ({
+            ...prev,
+            latitude: Number(pos.coords.latitude.toFixed(6)),
+            longitude: Number(pos.coords.longitude.toFixed(6)),
+          }));
+          setCaptureMeta({ capturedViaLiveCamera: true, capturedAt: ts, gpsVerified: true });
+          addToast('Live camera evidence captured with GPS timestamp!');
+        },
+        () => {
+          setCaptureMeta({ capturedViaLiveCamera: true, capturedAt: ts, gpsVerified: false });
+          addToast('Live camera photo captured (GPS permission skipped).', 'info');
+        }
+      );
+    } else {
+      setCaptureMeta({ capturedViaLiveCamera: true, capturedAt: ts, gpsVerified: false });
+    }
+  };
+
+  const handleVoiceReport = () => {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRec) {
+      addToast('Voice recognition is not supported in this browser (try Chrome/Edge).', 'info');
+      return;
+    }
+    const rec = new SpeechRec();
+    rec.lang = voiceLang;
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    setListening(true);
+    rec.onresult = (event) => {
+      const transcript = event.results?.[0]?.[0]?.transcript || '';
+      if (transcript) {
+        setForm((prev) => ({
+          ...prev,
+          description: prev.description ? `${prev.description} ${transcript}` : transcript,
+        }));
+        addToast('Voice transcription added to description!');
+      }
+      setListening(false);
+    };
+    rec.onerror = () => {
+      setListening(false);
+      addToast('Could not capture audio. Please check mic permissions.', 'error');
+    };
+    rec.onend = () => setListening(false);
+    rec.start();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -104,6 +167,9 @@ export const SubmitChallengePage = () => {
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)));
+      fd.append('capturedViaLiveCamera', String(captureMeta.capturedViaLiveCamera));
+      if (captureMeta.capturedAt) fd.append('capturedAt', captureMeta.capturedAt);
+      fd.append('gpsVerified', String(captureMeta.gpsVerified));
       files.forEach((f) => fd.append('media', f));
 
       const { data } = await api.post('/challenges', fd, {
@@ -224,15 +290,45 @@ export const SubmitChallengePage = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Detailed Description & Ground Context *
-            </label>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Detailed Description &amp; Ground Context *
+              </label>
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={voiceLang}
+                  onChange={(e) => setVoiceLang(e.target.value)}
+                  aria-label="Voice Language"
+                  className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-[11px] font-semibold"
+                >
+                  <option value="en-IN">English (IN)</option>
+                  <option value="hi-IN">हिन्दी (Hindi)</option>
+                  <option value="pa-IN">ਪੰਜਾਬੀ (Punjabi)</option>
+                  <option value="bn-IN">বাংলা (Bengali)</option>
+                  <option value="mr-IN">मराठी (Marathi)</option>
+                  <option value="ta-IN">தமிழ் (Tamil)</option>
+                  <option value="kn-IN">ಕನ್ನಡ (Kannada)</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={handleVoiceReport}
+                  className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition active:scale-95 ${
+                    listening
+                      ? 'bg-rose-600 text-white animate-pulse'
+                      : 'border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300'
+                  }`}
+                >
+                  {listening ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                  {listening ? 'Listening...' : 'Speak Issue'}
+                </button>
+              </div>
+            </div>
             <textarea
               required
               rows={5}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Describe the ground challenge, impacted communities, and constraints..."
+              placeholder="Type or click 'Speak Issue' in Hindi, Punjabi, English, or regional languages..."
               className="input-field"
             />
           </div>
@@ -290,11 +386,29 @@ export const SubmitChallengePage = () => {
             </div>
           </div>
 
-          {/* Image Preview Uploader */}
+          {/* Image Preview Uploader + Live Camera Capture */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Upload Evidence Photos (Max 5)
-            </label>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Upload Field Evidence (Max 5)
+              </label>
+              <label className="btn-secondary !py-1 !px-2.5 !text-[11px] cursor-pointer">
+                <Camera className="h-3.5 w-3.5 text-emerald-500" />
+                Capture Live Field Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleLiveCameraCapture}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            {captureMeta.capturedViaLiveCamera && (
+              <p className="mb-2 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                ✓ Live field camera capture attached {captureMeta.gpsVerified ? '(GPS Verified)' : ''}
+              </p>
+            )}
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40 px-4 py-5 text-center transition hover:border-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/30">
               <Upload className="h-6 w-6 text-indigo-500" />
               <span className="mt-2 text-xs font-semibold text-slate-700 dark:text-slate-300">

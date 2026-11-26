@@ -33,17 +33,21 @@ export const AdminDashboard = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [busyId, setBusyId] = useState('');
   const [escalateOpen, setEscalateOpen] = useState(false);
+  const [kycUsers, setKycUsers] = useState([]);
+  const [kycFeedback, setKycFeedback] = useState({});
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [chRes, univRes] = await Promise.all([
+      const [chRes, univRes, kycRes] = await Promise.all([
         api.get('/challenges?limit=100'),
         api.get('/auth/users?role=university'),
+        api.get('/profile/verification/queue?status=ALL'),
       ]);
       const all = chRes.data.challenges || [];
       setChallenges(all);
       setUniversities(univRes.data.users || []);
+      setKycUsers(kycRes.data.users || []);
 
       setSelected((prev) => {
         if (prev) return all.find((c) => c._id === prev._id) || all[0] || null;
@@ -121,6 +125,22 @@ export const AdminDashboard = () => {
     }
   };
 
+  const handleKycDecision = async (userId, status) => {
+    setBusyId(userId);
+    try {
+      await api.patch(`/profile/${userId}/verify`, {
+        status,
+        feedback: kycFeedback[userId] || '',
+      });
+      addToast(`User KYC marked ${status}.`);
+      await loadData();
+    } catch (err) {
+      addToast(err.response?.data?.message || 'KYC decision failed.', 'error');
+    } finally {
+      setBusyId('');
+    }
+  };
+
   const filteredQueue =
     statusFilter === 'ALL'
       ? challenges
@@ -170,6 +190,10 @@ export const AdminDashboard = () => {
           { key: 'routed', label: `Routed (${counts.routed})` },
           { key: 'rejected', label: `Rejected (${counts.rejected})` },
           { key: 'ALL', label: `All (${challenges.length})` },
+          {
+            key: 'kyc',
+            label: `KYC Audit (${kycUsers.filter((u) => u.verificationStatus === 'pending_review').length} pending)`,
+          },
         ].map((f) => (
           <button
             key={f.key}
@@ -195,6 +219,88 @@ export const AdminDashboard = () => {
 
       {loading ? (
         <div className="h-72 animate-pulse rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900" />
+      ) : statusFilter === 'kyc' ? (
+        <div className="space-y-3">
+          {kycUsers.map((u) => (
+            <div key={u._id} className="glass-card flex flex-wrap items-center justify-between gap-4 p-5">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    to={`/profile/${u._id}`}
+                    className="text-sm font-bold text-slate-900 dark:text-white hover:text-indigo-600"
+                  >
+                    {u.name}
+                  </Link>
+                  <StatusBadge
+                    status={
+                      u.verificationStatus === 'verified'
+                        ? 'approved'
+                        : u.verificationStatus === 'pending_review'
+                        ? 'proposed'
+                        : u.verificationStatus === 'rejected'
+                        ? 'rejected'
+                        : 'pending'
+                    }
+                    size="xs"
+                  />
+                  <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                    {u.role}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {u.email} • {u.organizationName || u.district}
+                </p>
+                {u.verificationDocuments?.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {u.verificationDocuments.map((d) => (
+                      <a
+                        key={d._id}
+                        href={d.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-1 text-[11px] font-semibold text-indigo-700 dark:text-indigo-300"
+                      >
+                        {d.docType.replace(/_/g, ' ').toUpperCase()} {d.docNumber ? `(${d.docNumber})` : ''} →
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Optional feedback..."
+                  value={kycFeedback[u._id] || ''}
+                  onChange={(e) =>
+                    setKycFeedback((prev) => ({ ...prev, [u._id]: e.target.value }))
+                  }
+                  className="input-field !w-48 !py-1.5 !text-xs"
+                />
+                {u.verificationStatus !== 'verified' && (
+                  <button
+                    type="button"
+                    disabled={busyId === u._id}
+                    onClick={() => handleKycDecision(u._id, 'verified')}
+                    className="btn-emerald !py-1.5 !px-3 !text-xs"
+                  >
+                    Approve KYC
+                  </button>
+                )}
+                {u.verificationStatus !== 'rejected' && (
+                  <button
+                    type="button"
+                    disabled={busyId === u._id}
+                    onClick={() => handleKycDecision(u._id, 'rejected')}
+                    className="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:text-rose-300"
+                  >
+                    Reject
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-12">
           {/* Left Queue */}

@@ -25,6 +25,17 @@ const milestoneSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const budgetEntrySchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    category: { type: String, default: 'Hardware & Prototyping', trim: true },
+    amount: { type: Number, required: true, min: 0 },
+    invoiceUrl: { type: String, default: '', trim: true },
+    loggedByName: { type: String, default: '' },
+  },
+  { timestamps: true }
+);
+
 const proposalSchema = new mongoose.Schema(
   {
     challengeId: {
@@ -78,6 +89,10 @@ const proposalSchema = new mongoose.Schema(
     },
     milestones: {
       type: [milestoneSchema],
+      default: [],
+    },
+    budgetEntries: {
+      type: [budgetEntrySchema],
       default: [],
     },
   },

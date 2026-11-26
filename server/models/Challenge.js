@@ -45,6 +45,27 @@ const escalationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+const commentSchema = new mongoose.Schema(
+  {
+    authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    authorName: { type: String, required: true },
+    authorRole: { type: String, required: true },
+    text: { type: String, required: true, trim: true },
+    attachmentUrl: { type: String, default: '', trim: true },
+    isPrivateWarRoom: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+const resolutionVoteSchema = new mongoose.Schema(
+  {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    vote: { type: String, enum: ['resolved', 'unresolved'], required: true },
+    votedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const challengeSchema = new mongoose.Schema(
   {
     title: {
@@ -87,6 +108,11 @@ const challengeSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    captureMetadata: {
+      capturedViaLiveCamera: { type: Boolean, default: false },
+      capturedAt: { type: Date },
+      gpsVerified: { type: Boolean, default: false },
+    },
     sourcePlatform: {
       type: String,
       default: 'Direct Report',
@@ -104,6 +130,24 @@ const challengeSchema = new mongoose.Schema(
     },
     escalations: {
       type: [escalationSchema],
+      default: [],
+    },
+    comments: {
+      type: [commentSchema],
+      default: [],
+    },
+    resolutionProof: {
+      afterMedia: { type: [String], default: [] },
+      notes: { type: String, default: '', trim: true },
+      capturedLat: { type: Number },
+      capturedLng: { type: Number },
+      distanceFromSiteMeters: { type: Number },
+      submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      submittedByName: { type: String, default: '' },
+      submittedAt: { type: Date },
+    },
+    resolutionVotes: {
+      type: [resolutionVoteSchema],
       default: [],
     },
     submittedBy: {

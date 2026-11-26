@@ -5,7 +5,7 @@ const Proposal = require('../models/Proposal');
 const Partnership = require('../models/Partnership');
 const ActivityLog = require('../models/ActivityLog');
 const User = require('../models/User');
-const { verifyToken, optionalAuth, allowRoles } = require('../middleware/auth');
+const { verifyToken, optionalAuth, allowRoles, requireVerified } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const { uploadMediaFile } = require('../config/cloudinary');
 const { assertLegalTransition } = require('../utils/stateMachine');
@@ -139,6 +139,28 @@ router.get('/', optionalAuth, async (req, res, next) => {
   }
 });
 
+// GET /api/challenges/open-feed/public (Open Civic JSON API for external embeds & RWAs)
+router.get('/open-feed/public', async (req, res, next) => {
+  try {
+    const filter = { status: { $ne: 'rejected' } };
+    if (req.query.district && req.query.district !== 'ALL') {
+      filter.district = req.query.district;
+    }
+    const items = await Challenge.find(filter)
+      .select('title category severity district status location sourcePlatform escalations createdAt')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+    return res.json({
+      portal: 'Janupkram Open Civic Feed',
+      count: items.length,
+      challenges: items,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 // GET /api/challenges/spatial/nearby?lat=23.3569&lng=85.3112&radiusMeters=2000
 router.get('/spatial/nearby', async (req, res, next) => {
   try {
@@ -225,8 +247,11 @@ router.get('/:id/duplicates', verifyToken, allowRoles('admin'), async (req, res,
 router.get('/:id', optionalAuth, async (req, res, next) => {
   try {
     const challenge = await Challenge.findById(req.params.id)
-      .populate('submittedBy', 'name email organizationName district role')
-      .populate('assignedUniversity', 'name email organizationName district specializations')
+      .populate('submittedBy', 'name email organizationName district role verificationStatus civicKarma')
+      .populate(
+        'assignedUniversity',
+        'name email organizationName district specializations verificationStatus aisheOrNaacCode'
+      )
       .populate('duplicateOf', 'title status')
       .lean();
 
@@ -236,19 +261,37 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
 
     const [proposals, partnerships, activityLogs] = await Promise.all([
       Proposal.find({ challengeId: challenge._id })
-        .populate('universityId', 'name email organizationName district specializations')
+        .populate('universityId', 'name email organizationName district specializations verificationStatus')
         .sort({ createdAt: -1 })
         .lean(),
       Partnership.find({ challengeId: challenge._id })
-        .populate('industryId', 'name email organizationName district')
+        .populate('industryId', 'name email organizationName district verificationStatus')
         .sort({ createdAt: -1 })
         .lean(),
       ActivityLog.find({ challengeId: challenge._id }).sort({ createdAt: -1 }).lean(),
     ]);
 
+    // Determine if current user can see private war-room messages
+    const uid = req.user ? String(req.user.id) : null;
+    const isWarRoomMember =
+      req.user &&
+      (req.user.role === 'admin' ||
+        (challenge.assignedUniversity && String(challenge.assignedUniversity._id) === uid) ||
+        partnerships.some(
+          (p) =>
+            ['accepted', 'completed'].includes(p.status) &&
+            String(p.industryId?._id || p.industryId) === uid
+        ));
+
+    const visibleComments = (challenge.comments || []).filter(
+      (c) => !c.isPrivateWarRoom || isWarRoomMember
+    );
+
     return res.json({
       challenge: {
         ...challenge,
+        comments: visibleComments,
+        canAccessWarRoom: Boolean(isWarRoomMember),
         upvotesCount: Array.isArray(challenge.upvotes) ? challenge.upvotes.length : 0,
       },
       proposals,
@@ -277,6 +320,9 @@ router.post(
         sourcePlatform = 'Direct Report',
         sourceUrl = '',
         externalTicketId = '',
+        capturedViaLiveCamera = 'false',
+        capturedAt = '',
+        gpsVerified = 'false',
         latitude,
         longitude,
       } = req.body;
@@ -320,11 +366,18 @@ router.post(
         sourcePlatform: String(sourcePlatform || 'Direct Report').trim(),
         sourceUrl: String(sourceUrl || '').trim(),
         externalTicketId: String(externalTicketId || '').trim(),
+        captureMetadata: {
+          capturedViaLiveCamera: capturedViaLiveCamera === true || capturedViaLiveCamera === 'true',
+          capturedAt: capturedAt ? new Date(capturedAt) : undefined,
+          gpsVerified: gpsVerified === true || gpsVerified === 'true',
+        },
         location: { type: 'Point', coordinates: coords },
         media: mediaUrls,
         submittedBy: req.user.id,
         status: 'submitted',
       });
+
+      await User.findByIdAndUpdate(req.user.id, { $inc: { civicKarma: 10 } });
 
       const admins = await User.find({ role: 'admin' }).select('_id');
       await recordAuditAndNotify({
@@ -532,11 +585,12 @@ router.patch('/:id/status', verifyToken, allowRoles('admin', 'university'), asyn
   }
 });
 
-// POST /api/challenges/:id/escalate (Log direct escalation to concerned govt/municipal authority)
+// POST /api/challenges/:id/escalate (Verified users only — Log direct escalation)
 router.post(
   '/:id/escalate',
   verifyToken,
   allowRoles('admin', 'citizen', 'university'),
+  requireVerified,
   async (req, res, next) => {
     try {
       const {
@@ -649,6 +703,187 @@ router.patch(
     }
   }
 );
+
+// POST /api/challenges/:id/comments (Public Q&A or Private Team War-Room)
+router.post('/:id/comments', verifyToken, async (req, res, next) => {
+  try {
+    const { text, attachmentUrl = '', isPrivateWarRoom = false } = req.body;
+    if (!text || !String(text).trim()) {
+      return res.status(400).json({ message: 'Comment text is required.' });
+    }
+
+    const challenge = await Challenge.findById(req.params.id);
+    if (!challenge) return res.status(404).json({ message: 'Challenge not found.' });
+
+    if (isPrivateWarRoom) {
+      const uid = String(req.user.id);
+      const hasAcceptedPart = await Partnership.exists({
+        challengeId: challenge._id,
+        industryId: req.user.id,
+        status: { $in: ['accepted', 'completed'] },
+      });
+      const allowed =
+        req.user.role === 'admin' ||
+        (challenge.assignedUniversity && String(challenge.assignedUniversity) === uid) ||
+        Boolean(hasAcceptedPart);
+      if (!allowed) {
+        return res.status(403).json({
+          message: 'Private War-Room is restricted to the assigned University, Nodal Admin, and accepted CSR Partner.',
+        });
+      }
+    }
+
+    const comment = {
+      authorId: req.user.id,
+      authorName: req.user.name,
+      authorRole: req.user.role,
+      text: String(text).trim(),
+      attachmentUrl: String(attachmentUrl).trim(),
+      isPrivateWarRoom: Boolean(isPrivateWarRoom),
+    };
+
+    challenge.comments.push(comment);
+    await challenge.save();
+
+    const recipients = [
+      {
+        recipientId: challenge.submittedBy,
+        title: isPrivateWarRoom ? 'Team War-Room Update' : `New Discussion on "${challenge.title.slice(0, 35)}"`,
+        message: `${req.user.name}: ${comment.text.slice(0, 90)}`,
+      },
+    ];
+    if (challenge.assignedUniversity) {
+      recipients.push({
+        recipientId: challenge.assignedUniversity,
+        title: isPrivateWarRoom ? 'New War-Room Note' : 'Citizen/Partner Comment on Challenge',
+        message: `${req.user.name}: ${comment.text.slice(0, 90)}`,
+      });
+    }
+
+    await recordAuditAndNotify({
+      challengeId: challenge._id,
+      actor: req.user,
+      action: isPrivateWarRoom ? 'warroom_note_added' : 'comment_posted',
+      fromStatus: challenge.status,
+      toStatus: challenge.status,
+      remarks: `${req.user.name} posted in ${isPrivateWarRoom ? 'Private War-Room' : 'Public Q&A'}.`,
+      notifications: isPrivateWarRoom
+        ? recipients.filter((r) => String(r.recipientId) !== String(challenge.submittedBy))
+        : recipients,
+    });
+
+    return res.status(201).json({
+      comment: challenge.comments[challenge.comments.length - 1],
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// POST /api/challenges/:id/resolution-proof (Before & After Proof of Resolution)
+router.post(
+  '/:id/resolution-proof',
+  verifyToken,
+  allowRoles('university', 'admin', 'citizen'),
+  upload.array('afterMedia', 4),
+  async (req, res, next) => {
+    try {
+      const { notes = '', capturedLat, capturedLng } = req.body;
+      const challenge = await Challenge.findById(req.params.id);
+      if (!challenge) return res.status(404).json({ message: 'Challenge not found.' });
+
+      const afterUrls = [];
+      if (Array.isArray(req.files) && req.files.length > 0) {
+        for (const file of req.files) {
+          const uploaded = await uploadMediaFile(file, req);
+          if (uploaded?.url) afterUrls.push(uploaded.url);
+        }
+      }
+
+      if (afterUrls.length === 0 && !String(notes).trim()) {
+        return res.status(400).json({
+          message: 'Please attach at least one "After" photo or resolution summary notes.',
+        });
+      }
+
+      let distanceFromSiteMeters = null;
+      const latNum = Number(capturedLat);
+      const lngNum = Number(capturedLng);
+      if (!Number.isNaN(latNum) && !Number.isNaN(lngNum) && capturedLat !== undefined && capturedLng !== undefined) {
+        distanceFromSiteMeters = haversineMeters(
+          challenge.location.coordinates,
+          [lngNum, latNum]
+        );
+      }
+
+      challenge.resolutionProof = {
+        afterMedia: afterUrls,
+        notes: String(notes).trim(),
+        capturedLat: !Number.isNaN(latNum) ? latNum : undefined,
+        capturedLng: !Number.isNaN(lngNum) ? lngNum : undefined,
+        distanceFromSiteMeters: distanceFromSiteMeters ?? undefined,
+        submittedBy: req.user.id,
+        submittedByName: req.user.name,
+        submittedAt: new Date(),
+      };
+      await challenge.save();
+
+      // Notify original reporter + upvoters to cast Community Verification Vote
+      const voterTargets = new Set([String(challenge.submittedBy), ...(challenge.upvotes || []).map(String)]);
+      const notifications = Array.from(voterTargets).map((recipientId) => ({
+        recipientId,
+        title: 'Resolution Proof Uploaded — Vote Now!',
+        message: `${req.user.name} uploaded "After" resolution proof for "${challenge.title}". Confirm whether it is resolved!`,
+      }));
+
+      await recordAuditAndNotify({
+        challengeId: challenge._id,
+        actor: req.user,
+        action: 'resolution_proof_uploaded',
+        fromStatus: challenge.status,
+        toStatus: challenge.status,
+        remarks: `Uploaded ${afterUrls.length} "After" proof photo(s)${
+          distanceFromSiteMeters !== null ? ` (${distanceFromSiteMeters}m from site)` : ''
+        }.`,
+        notifications,
+      });
+
+      return res.json({ resolutionProof: challenge.resolutionProof });
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+// POST /api/challenges/:id/resolution-vote (Community Verification Poll)
+router.post('/:id/resolution-vote', verifyToken, async (req, res, next) => {
+  try {
+    const { vote } = req.body;
+    if (!['resolved', 'unresolved'].includes(vote)) {
+      return res.status(400).json({ message: "Vote must be 'resolved' or 'unresolved'." });
+    }
+
+    const challenge = await Challenge.findById(req.params.id);
+    if (!challenge) return res.status(404).json({ message: 'Challenge not found.' });
+
+    const uid = String(req.user.id);
+    const existingIdx = (challenge.resolutionVotes || []).findIndex(
+      (v) => String(v.userId) === uid
+    );
+    if (existingIdx >= 0) {
+      challenge.resolutionVotes[existingIdx].vote = vote;
+      challenge.resolutionVotes[existingIdx].votedAt = new Date();
+    } else {
+      challenge.resolutionVotes.push({ userId: req.user.id, vote });
+      await User.findByIdAndUpdate(req.user.id, { $inc: { civicKarma: 5 } });
+    }
+    await challenge.save();
+
+    return res.json({ resolutionVotes: challenge.resolutionVotes });
+  } catch (err) {
+    return next(err);
+  }
+});
 
 // POST /api/challenges/:id/upvote
 router.post('/:id/upvote', verifyToken, async (req, res, next) => {

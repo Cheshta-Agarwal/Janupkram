@@ -27,6 +27,8 @@ const verifyToken = async (req, res, next) => {
       organizationName: user.organizationName,
       district: user.district,
       specializations: user.specializations,
+      verificationStatus: user.verificationStatus || 'unverified',
+      civicKarma: user.civicKarma || 0,
     };
     return next();
   } catch (err) {
@@ -51,6 +53,8 @@ const optionalAuth = async (req, res, next) => {
           organizationName: user.organizationName,
           district: user.district,
           specializations: user.specializations,
+          verificationStatus: user.verificationStatus || 'unverified',
+          civicKarma: user.civicKarma || 0,
         };
       }
     }
@@ -74,9 +78,24 @@ const allowRoles = (...roles) => {
   };
 };
 
+const requireVerified = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Authentication required.' });
+  }
+  if (req.user.verificationStatus !== 'verified') {
+    return res.status(403).json({
+      code: 'KYC_REQUIRED',
+      message:
+        'Verified KYC status is required for this privileged action. Complete verification in Settings → KYC Verification.',
+    });
+  }
+  return next();
+};
+
 module.exports = {
   verifyToken,
   optionalAuth,
   allowRoles,
+  requireVerified,
   getJwtSecret,
 };

@@ -19,6 +19,10 @@ const populateSeed = async () => {
       role: 'citizen',
       organizationName: 'Community Civic Forum, Phagwara',
       district: 'Phagwara',
+      wardOrConstituency: 'Ward 14, Phagwara Municipal Corp.',
+      bio: 'Active civic volunteer documenting drainage, water safety, and agri-storage challenges.',
+      verificationStatus: 'verified',
+      civicKarma: 185,
       specializations: [],
     },
     {
@@ -28,6 +32,11 @@ const populateSeed = async () => {
       role: 'admin',
       organizationName: 'Janupkram Central Moderation Cell',
       district: 'New Delhi',
+      designation: 'Chief Civic Innovation Nodal Officer',
+      jurisdiction: 'Pan-India Civic Coordination Desk',
+      bio: 'Overseeing spatial duplicate audits, university R&D routing, and authority SLA escalations.',
+      verificationStatus: 'verified',
+      civicKarma: 240,
       specializations: [],
     },
     {
@@ -37,6 +46,13 @@ const populateSeed = async () => {
       role: 'university',
       organizationName: 'Lovely Professional University (LPU) Innovation Studio',
       district: 'Phagwara',
+      aisheOrNaacCode: 'NAAC A++ • AISHE U-0379',
+      labCapabilities: ['IoT & LoRaWAN FabLab', 'Water Quality Assay Lab', 'Solar Thermal Systems', 'Edge-AI Lab'],
+      githubUrl: 'https://github.com/lpu-janupkram',
+      portfolioUrl: 'https://www.lpu.in/research/',
+      bio: 'Student-led R&D collective at LPU mentoring engineering cohorts to solve real-world societal issues.',
+      verificationStatus: 'verified',
+      civicKarma: 320,
       specializations: ['agriculture', 'healthcare', 'sanitation', 'environment', 'infrastructure'],
     },
     {
@@ -46,6 +62,10 @@ const populateSeed = async () => {
       role: 'university',
       organizationName: 'National University R&D Alliance',
       district: 'Bengaluru',
+      aisheOrNaacCode: 'NAAC A+ • AISHE U-0214',
+      labCapabilities: ['Civic GIS Lab', 'EdTech Simulation Studio', 'Structural Testing Lab'],
+      verificationStatus: 'verified',
+      civicKarma: 145,
       specializations: ['education', 'infrastructure', 'sanitation', 'environment'],
     },
     {
@@ -55,6 +75,12 @@ const populateSeed = async () => {
       role: 'industry',
       organizationName: 'Bharat Tech & CSR Foundation',
       district: 'Pune',
+      cinOrGstin: 'CIN U85300MH2018NPL309421',
+      csrFocusAreas: ['Schedule VII (i) Sanitation & Water', 'Schedule VII (iv) Environment', 'Schedule VII (ii) Education'],
+      mentorshipSlots: 8,
+      bio: 'Funding university hardware prototypes and deploying civic mentors across Indian cities.',
+      verificationStatus: 'verified',
+      civicKarma: 290,
       specializations: ['sanitation', 'healthcare', 'environment', 'infrastructure'],
     },
   ]);
@@ -76,6 +102,29 @@ const populateSeed = async () => {
       assignedUniversity: univLpu._id,
       status: 'in_progress',
       upvotes: [citizenAarav._id, univLpu._id, industryPartner._id],
+      comments: [
+        {
+          authorId: univLpu._id,
+          authorName: univLpu.name,
+          authorRole: 'university',
+          text: '@Aarav Sharma Does the Bellandur ORR overflow worsen mainly during peak evening discharge or only during rain?',
+          isPrivateWarRoom: false,
+        },
+        {
+          authorId: citizenAarav._id,
+          authorName: citizenAarav.name,
+          authorRole: 'citizen',
+          text: '@Prof. Anurag Sharma Sewage seeps almost daily near Ecospace gate, and turns knee-deep after 20 minutes of rain.',
+          isPrivateWarRoom: false,
+        },
+        {
+          authorId: industryPartner._id,
+          authorName: industryPartner.name,
+          authorRole: 'industry',
+          text: 'First CSR tranche approved for IP68 ultrasonic sensor enclosures. Upload BOM invoices in the Budget Ledger.',
+          isPrivateWarRoom: true,
+        },
+      ],
       escalations: [
         {
           authorityName: 'BBMP Chief Commissioner & BWSSB',
@@ -139,6 +188,19 @@ const populateSeed = async () => {
       assignedUniversity: univLpu._id,
       status: 'deployed',
       upvotes: [citizenAarav._id, univLpu._id, industryPartner._id],
+      resolutionProof: {
+        notes: 'Smart manhole level & slab-breach sensors deployed across 8 Jaipur residential lanes; zero overflow reported over 14 days.',
+        capturedLat: 26.9125,
+        capturedLng: 75.7874,
+        distanceFromSiteMeters: 15,
+        submittedBy: univLpu._id,
+        submittedByName: univLpu.name,
+        submittedAt: new Date(),
+      },
+      resolutionVotes: [
+        { userId: citizenAarav._id, vote: 'resolved' },
+        { userId: adminNodal._id, vote: 'resolved' },
+      ],
     },
     {
       title: 'Illegal Nighttime Roadside Garbage Dumping & Overflowing Ward Bins (Madiwala)',
@@ -222,6 +284,22 @@ const populateSeed = async () => {
       expectedImpact: 'Prevent chronic ORR waterlogging and provide 6-hour early choke warnings.',
       estimatedBudget: 420000,
       status: 'approved',
+      budgetEntries: [
+        {
+          title: 'IP68 Ultrasonic Distance Sensors & LoRaWAN Gateways (Batch 1)',
+          category: 'Hardware & Prototyping',
+          amount: 112000,
+          invoiceUrl: 'https://github.com/lpu-janupkram/urbandrain-gis',
+          loggedByName: 'Prof. Anurag Sharma',
+        },
+        {
+          title: '3D-Printed Waterproof Enclosures & Solar MPPT Modules',
+          category: 'Fabrication & Power',
+          amount: 48500,
+          invoiceUrl: '',
+          loggedByName: 'Prof. Anurag Sharma',
+        },
+      ],
       milestones: [
         {
           title: 'Drain Hotspot GIS & Silt Assay',
@@ -263,6 +341,22 @@ const populateSeed = async () => {
       expectedImpact: 'Reduce post-harvest spoilage below 8% and raise farmer income by 24%.',
       estimatedBudget: 480000,
       status: 'approved',
+      budgetEntries: [
+        {
+          title: 'IP68 Ultrasonic Distance Sensors & LoRaWAN Gateways (Batch 1)',
+          category: 'Hardware & Prototyping',
+          amount: 112000,
+          invoiceUrl: 'https://github.com/lpu-janupkram/urbandrain-gis',
+          loggedByName: 'Prof. Anurag Sharma',
+        },
+        {
+          title: '3D-Printed Waterproof Enclosures & Solar MPPT Modules',
+          category: 'Fabrication & Power',
+          amount: 48500,
+          invoiceUrl: '',
+          loggedByName: 'Prof. Anurag Sharma',
+        },
+      ],
       milestones: [
         {
           title: 'Eutectic PCM Thermal Bank Design',
@@ -412,11 +506,15 @@ const ensureSeeded = async () => {
   const count = await User.countDocuments();
   const hasLegacySeed = await User.exists({ email: 'ramesh.citizen@jharkhand.in' });
   const hasCurrentSeed = await User.exists({ email: 'citizen@janupkram.org' });
+  const hasVerifiedKycSeed = await User.exists({
+    email: 'citizen@janupkram.org',
+    verificationStatus: 'verified',
+  });
   const hasPreDiscoverySeed = await Challenge.exists({
     title: 'IoT Groundwater Salinity & Nitrate Monitoring Grid for Rural Wells',
   });
 
-  if (count === 0 || (hasLegacySeed && !hasCurrentSeed) || hasPreDiscoverySeed) {
+  if (count === 0 || (hasLegacySeed && !hasCurrentSeed) || hasPreDiscoverySeed || !hasVerifiedKycSeed) {
     console.log('Refreshing database with discovered India Reddit/X + LPU Janupkram seed...');
     await Promise.all([
       User.deleteMany({}),

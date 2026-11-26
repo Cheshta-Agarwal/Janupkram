@@ -15,15 +15,30 @@ import {
   Printer,
   Megaphone,
   Globe2,
+  MessageSquare,
+  Lock,
+  Camera,
+  Receipt,
+  Award,
 } from 'lucide-react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import StatusBadge from '../components/StatusBadge';
+import VerifiedBadge from '../components/VerifiedBadge';
 import LifecycleStepper from '../components/LifecycleStepper';
 import MapPicker from '../components/MapPicker';
 import AuthorityEscalationModal from '../components/AuthorityEscalationModal';
 import { CATEGORY_LABELS, formatINR, formatDate } from '../utils/constants';
+
+const getSlaLabel = (createdAt) => {
+  if (!createdAt) return 'Day 0 of 7-day SLA';
+  const diffHours = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 3600000));
+  const days = Math.floor(diffHours / 24);
+  if (days >= 7) return `OVERDUE: ${days}d elapsed (>7d SLA)`;
+  if (days > 0) return `${days}d ${diffHours % 24}h elapsed (7d SLA)`;
+  return `${diffHours}h elapsed (7d SLA)`;
+};
 
 export const ChallengeDetailPage = () => {
   const { id } = useParams();
@@ -37,6 +52,13 @@ export const ChallengeDetailPage = () => {
 
   const [pledgeOpen, setPledgeOpen] = useState(false);
   const [escalateOpen, setEscalateOpen] = useState(false);
+  const [discussionTab, setDiscussionTab] = useState('public');
+  const [commentText, setCommentText] = useState('');
+  const [budgetForms, setBudgetForms] = useState({});
+  const [proofOpen, setProofOpen] = useState(false);
+  const [proofNotes, setProofNotes] = useState('');
+  const [proofFiles, setProofFiles] = useState([]);
+  const [proofCoords, setProofCoords] = useState({ lat: '', lng: '' });
   const [pledgeForm, setPledgeForm] = useState({
     collaborationType: 'funding',
     title: '',
@@ -134,6 +156,81 @@ export const ChallengeDetailPage = () => {
     try {
       await api.patch(`/challenges/${id}/escalations/${escId}`, { status });
       addToast(`Authority response marked ${status.replace(/_/g, ' ')}.`);
+      await loadDetail();
+    } finally {
+      setActionBusy('');
+    }
+  };
+
+  const handlePostComment = async (e) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    setActionBusy('comment');
+    try {
+      await api.post(`/challenges/${id}/comments`, {
+        text: commentText,
+        isPrivateWarRoom: discussionTab === 'warroom',
+      });
+      setCommentText('');
+      addToast(discussionTab === 'warroom' ? 'Posted in Private War-Room!' : 'Comment posted!');
+      await loadDetail();
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Unable to post comment.', 'error');
+    } finally {
+      setActionBusy('');
+    }
+  };
+
+  const handleAddBudgetEntry = async (e, proposalId) => {
+    e.preventDefault();
+    const form = budgetForms[proposalId] || {};
+    if (!form.title || !form.amount) return;
+    setActionBusy(`budget-${proposalId}`);
+    try {
+      await api.post(`/proposals/${proposalId}/budget`, form);
+      setBudgetForms((prev) => ({ ...prev, [proposalId]: { title: '', amount: '', invoiceUrl: '' } }));
+      addToast('CSR Budget utilization entry logged!');
+      await loadDetail();
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Unable to log expense.', 'error');
+    } finally {
+      setActionBusy('');
+    }
+  };
+
+  const handleUploadProof = async (e) => {
+    e.preventDefault();
+    setActionBusy('proof');
+    try {
+      const fd = new FormData();
+      fd.append('notes', proofNotes);
+      if (proofCoords.lat) fd.append('capturedLat', proofCoords.lat);
+      if (proofCoords.lng) fd.append('capturedLng', proofCoords.lng);
+      proofFiles.forEach((f) => fd.append('afterMedia', f));
+      await api.post(`/challenges/${id}/resolution-proof`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setProofOpen(false);
+      setProofNotes('');
+      setProofFiles([]);
+      addToast('Resolution proof uploaded! Community Verification Poll is live.');
+      await loadDetail();
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to upload resolution proof.', 'error');
+    } finally {
+      setActionBusy('');
+    }
+  };
+
+  const handleResolutionVote = async (vote) => {
+    if (!isAuthenticated) {
+      addToast('Sign in to cast your verification vote.', 'info');
+      return;
+    }
+    setActionBusy('vote');
+    try {
+      await api.post(`/challenges/${id}/resolution-vote`, { vote });
+      addToast(`Voted "${vote === 'resolved' ? 'Confirmed Resolved' : 'Still Unresolved'}" (+5 Karma)!`);
       await loadDetail();
     } finally {
       setActionBusy('');
@@ -266,11 +363,15 @@ export const ChallengeDetailPage = () => {
                   View Original Thread / Portal <ExternalLink className="h-3 w-3" />
                 </a>
               )}
-              <span>
+              <span className="inline-flex items-center gap-1.5 flex-wrap">
                 Reported by{' '}
-                <strong className="text-slate-800 dark:text-slate-200">
+                <Link
+                  to={`/profile/${challenge.submittedBy?._id}`}
+                  className="font-bold text-slate-800 dark:text-slate-200 hover:text-indigo-600 underline decoration-dotted"
+                >
                   {challenge.submittedBy?.name}
-                </strong>{' '}
+                </Link>
+                <VerifiedBadge status={challenge.submittedBy?.verificationStatus} size="xs" />
                 on {formatDate(challenge.createdAt)}
               </span>
             </div>
@@ -350,9 +451,12 @@ export const ChallengeDetailPage = () => {
                 </h2>
               </div>
               {challenge.assignedUniversity && (
-                <span className="text-xs font-semibold text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/60 border border-violet-100 dark:border-violet-800 px-2.5 py-1 rounded-lg">
+                <Link
+                  to={`/profile/${challenge.assignedUniversity._id}`}
+                  className="text-xs font-semibold text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/60 border border-violet-100 dark:border-violet-800 px-2.5 py-1 rounded-lg hover:border-violet-400 transition"
+                >
                   {challenge.assignedUniversity.organizationName || challenge.assignedUniversity.name}
-                </span>
+                </Link>
               )}
             </div>
 
@@ -393,9 +497,18 @@ export const ChallengeDetailPage = () => {
                             {formatINR(prop.estimatedBudget)}
                           </p>
                         </div>
-                        <span className="rounded-lg bg-indigo-50 dark:bg-indigo-950/70 px-2.5 py-1 text-xs font-bold text-indigo-700 dark:text-indigo-300">
-                          {pct}% Milestones Complete
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-lg bg-indigo-50 dark:bg-indigo-950/70 px-2.5 py-1 text-xs font-bold text-indigo-700 dark:text-indigo-300">
+                            {pct}% Milestones Complete
+                          </span>
+                          <Link
+                            to={`/verify/cert/${prop._id}`}
+                            className="btn-secondary !py-1 !px-2.5 !text-[11px]"
+                          >
+                            <Award className="h-3.5 w-3.5 text-amber-500" />
+                            Certificate
+                          </Link>
+                        </div>
                       </div>
 
                       <div className="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
@@ -520,10 +633,313 @@ export const ChallengeDetailPage = () => {
                           )}
                         </div>
                       )}
+
+                      {/* CSR Grant & Budget Utilization Ledger */}
+                      <div className="border-t border-slate-200/80 dark:border-slate-800 pt-3 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                            <Receipt className="h-3.5 w-3.5 text-emerald-500" />
+                            CSR Grant &amp; Budget Utilization Ledger
+                          </span>
+                          <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                            Utilized:{' '}
+                            {formatINR(
+                              (prop.budgetEntries || []).reduce((s, b) => s + (b.amount || 0), 0)
+                            )}{' '}
+                            / {formatINR(prop.estimatedBudget)}
+                          </span>
+                        </div>
+
+                        {prop.budgetEntries?.length > 0 && (
+                          <div className="space-y-1.5">
+                            {prop.budgetEntries.map((b) => (
+                              <div
+                                key={b._id}
+                                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 text-xs"
+                              >
+                                <span className="font-medium text-slate-800 dark:text-slate-200">
+                                  {b.title}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                                    {formatINR(b.amount)}
+                                  </span>
+                                  {b.invoiceUrl && (
+                                    <a
+                                      href={b.invoiceUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                                    >
+                                      Invoice →
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {canEdit && (
+                          <form
+                            onSubmit={(e) => handleAddBudgetEntry(e, prop._id)}
+                            className="grid gap-2 sm:grid-cols-12 pt-1 no-print"
+                          >
+                            <input
+                              type="text"
+                              required
+                              placeholder="Component / Bill item"
+                              value={budgetForms[prop._id]?.title || ''}
+                              onChange={(e) =>
+                                setBudgetForms((prev) => ({
+                                  ...prev,
+                                  [prop._id]: { ...prev[prop._id], title: e.target.value },
+                                }))
+                              }
+                              className="input-field sm:col-span-5 !py-1.5 !text-[11px]"
+                            />
+                            <input
+                              type="number"
+                              required
+                              min="0"
+                              placeholder="INR Amount"
+                              value={budgetForms[prop._id]?.amount || ''}
+                              onChange={(e) =>
+                                setBudgetForms((prev) => ({
+                                  ...prev,
+                                  [prop._id]: { ...prev[prop._id], amount: e.target.value },
+                                }))
+                              }
+                              className="input-field sm:col-span-3 !py-1.5 !text-[11px]"
+                            />
+                            <input
+                              type="url"
+                              placeholder="Invoice URL"
+                              value={budgetForms[prop._id]?.invoiceUrl || ''}
+                              onChange={(e) =>
+                                setBudgetForms((prev) => ({
+                                  ...prev,
+                                  [prop._id]: { ...prev[prop._id], invoiceUrl: e.target.value },
+                                }))
+                              }
+                              className="input-field sm:col-span-2 !py-1.5 !text-[11px]"
+                            />
+                            <button
+                              type="submit"
+                              disabled={actionBusy === `budget-${prop._id}`}
+                              className="btn-secondary sm:col-span-2 !py-1.5 !px-2 !text-[11px]"
+                            >
+                              + Log Bill
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
+            )}
+          </div>
+
+          {/* Before & After Proof of Resolution + Community Verification Poll */}
+          <div className="glass-card p-5 sm:p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Camera className="h-5 w-5 text-emerald-500" />
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                  Before &amp; After Resolution Proof &amp; Community Poll
+                </h2>
+              </div>
+              {isAuthenticated && ['university', 'admin', 'citizen'].includes(user?.role) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProofOpen(true);
+                    if (navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) =>
+                          setProofCoords({
+                            lat: String(pos.coords.latitude.toFixed(6)),
+                            lng: String(pos.coords.longitude.toFixed(6)),
+                          }),
+                        () => {}
+                      );
+                    }
+                  }}
+                  className="btn-secondary !py-1.5 !px-3 !text-xs no-print"
+                >
+                  <Camera className="h-3.5 w-3.5 text-emerald-500" />
+                  Upload &ldquo;After&rdquo; Proof
+                </button>
+              )}
+            </div>
+
+            {challenge.resolutionProof?.submittedAt ? (
+              <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span className="font-bold text-emerald-800 dark:text-emerald-300">
+                    &ldquo;After&rdquo; Proof submitted by {challenge.resolutionProof.submittedByName}
+                  </span>
+                  {challenge.resolutionProof.distanceFromSiteMeters !== undefined && (
+                    <span className="rounded-md bg-white dark:bg-slate-900 px-2 py-0.5 font-mono text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                      {challenge.resolutionProof.distanceFromSiteMeters}m from original site
+                    </span>
+                  )}
+                </div>
+                {challenge.resolutionProof.notes && (
+                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                    {challenge.resolutionProof.notes}
+                  </p>
+                )}
+                {challenge.resolutionProof.afterMedia?.length > 0 && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {challenge.resolutionProof.afterMedia.map((url, idx) => (
+                      <a key={idx} href={url} target="_blank" rel="noreferrer">
+                        <img
+                          src={url}
+                          alt={`After proof ${idx + 1}`}
+                          className="h-36 w-full rounded-xl object-cover border border-emerald-200 dark:border-emerald-800"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                No &ldquo;After&rdquo; resolution proof uploaded yet. Field teams can capture geotagged proof once resolved.
+              </p>
+            )}
+
+            {/* Community Sign-Off Poll */}
+            {(() => {
+              const votes = challenge.resolutionVotes || [];
+              const resolvedVotes = votes.filter((v) => v.vote === 'resolved').length;
+              const unresolvedVotes = votes.filter((v) => v.vote === 'unresolved').length;
+              return (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 p-3.5">
+                  <div className="text-xs">
+                    <p className="font-bold text-slate-900 dark:text-white">
+                      Community Verification Poll
+                    </p>
+                    <p className="text-slate-500 dark:text-slate-400">
+                      {resolvedVotes} Confirmed Resolved • {unresolvedVotes} Still Unresolved
+                    </p>
+                  </div>
+                  <div className="flex gap-2 no-print">
+                    <button
+                      type="button"
+                      disabled={actionBusy === 'vote'}
+                      onClick={() => handleResolutionVote('resolved')}
+                      className="btn-emerald !py-1.5 !px-3 !text-xs"
+                    >
+                      Confirmed Resolved
+                    </button>
+                    <button
+                      type="button"
+                      disabled={actionBusy === 'vote'}
+                      onClick={() => handleResolutionVote('unresolved')}
+                      className="btn-secondary !py-1.5 !px-3 !text-xs"
+                    >
+                      Still Unresolved
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Challenge Discussion Thread & Private War-Room */}
+          <div className="glass-card p-5 sm:p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-indigo-500" />
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                  Collaboration Thread &amp; War-Room
+                </h2>
+              </div>
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setDiscussionTab('public')}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                    discussionTab === 'public'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                  }`}
+                >
+                  Public Q&amp;A
+                </button>
+                {challenge.canAccessWarRoom && (
+                  <button
+                    type="button"
+                    onClick={() => setDiscussionTab('warroom')}
+                    className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                      discussionTab === 'warroom'
+                        ? 'bg-violet-600 text-white'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    <Lock className="h-3 w-3" />
+                    Private War-Room
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+              {(challenge.comments || [])
+                .filter((c) =>
+                  discussionTab === 'warroom' ? c.isPrivateWarRoom : !c.isPrivateWarRoom
+                )
+                .map((c) => (
+                  <div
+                    key={c._id}
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 p-3"
+                  >
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-slate-900 dark:text-white">
+                        {c.authorName}{' '}
+                        <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                          ({c.authorRole})
+                        </span>
+                      </span>
+                      <span className="text-slate-400">{formatDate(c.createdAt)}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-700 dark:text-slate-300">{c.text}</p>
+                  </div>
+                ))}
+              {(challenge.comments || []).filter((c) =>
+                discussionTab === 'warroom' ? c.isPrivateWarRoom : !c.isPrivateWarRoom
+              ).length === 0 && (
+                <p className="text-xs text-slate-400 text-center py-4">
+                  No messages yet. Ask a clarifying question or tag @user!
+                </p>
+              )}
+            </div>
+
+            {isAuthenticated && (
+              <form onSubmit={handlePostComment} className="flex gap-2 pt-1 no-print">
+                <input
+                  type="text"
+                  required
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder={
+                    discussionTab === 'warroom'
+                      ? 'Post private team/mentor/CSR note...'
+                      : 'Ask a clarifying question or @mention someone...'
+                  }
+                  className="input-field !py-2 !text-xs flex-1"
+                />
+                <button
+                  type="submit"
+                  disabled={actionBusy === 'comment'}
+                  className="btn-primary !py-2 !px-4 !text-xs"
+                >
+                  Post
+                </button>
+              </form>
             )}
           </div>
 
@@ -651,6 +1067,9 @@ export const ChallengeDetailPage = () => {
                     </div>
                     <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold">
                       {esc.channel.toUpperCase()} {esc.authorityHandle ? `• ${esc.authorityHandle}` : ''}
+                    </p>
+                    <p className="text-[11px] font-mono font-semibold text-amber-700 dark:text-amber-300">
+                      SLA Timer: {getSlaLabel(esc.createdAt)}
                     </p>
                     <p className="text-xs text-slate-600 dark:text-slate-300">{esc.message}</p>
                     {user?.role === 'admin' && esc.status !== 'resolved_by_authority' && (
@@ -809,6 +1228,63 @@ export const ChallengeDetailPage = () => {
         onClose={() => setEscalateOpen(false)}
         onEscalated={() => loadDetail()}
       />
+
+      {proofOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+          <div className="animate-scale-in w-full max-w-md glass-card p-6 shadow-2xl">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Upload &ldquo;After&rdquo; Proof of Resolution
+            </h3>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Capture geotagged field evidence to trigger the Community Verification Poll.
+            </p>
+            <form onSubmit={handleUploadProof} className="mt-4 space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Resolution Summary Notes *
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={proofNotes}
+                  onChange={(e) => setProofNotes(e.target.value)}
+                  placeholder="Describe the verified field resolution..."
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label className="btn-secondary w-full cursor-pointer !justify-center">
+                  <Camera className="h-4 w-4 text-emerald-500" />
+                  {proofFiles.length > 0
+                    ? `${proofFiles.length} photo(s) selected`
+                    : 'Capture / Upload After Photos'}
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    capture="environment"
+                    onChange={(e) => setProofFiles(Array.from(e.target.files || []).slice(0, 4))}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              {proofCoords.lat && (
+                <p className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
+                  GPS Verified: {proofCoords.lat}, {proofCoords.lng}
+                </p>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setProofOpen(false)} className="btn-secondary">
+                  Cancel
+                </button>
+                <button type="submit" disabled={actionBusy === 'proof'} className="btn-emerald">
+                  {actionBusy === 'proof' ? 'Uploading...' : 'Submit Proof & Start Poll'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

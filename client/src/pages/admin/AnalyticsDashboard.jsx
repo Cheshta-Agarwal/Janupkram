@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ResponsiveContainer,
   BarChart,
@@ -32,13 +33,18 @@ export const AnalyticsDashboard = () => {
   const { isDark } = useTheme();
   const { addToast } = useToast();
   const [analytics, setAnalytics] = useState(null);
+  const [karmaLeaders, setKarmaLeaders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const { data } = await api.get('/analytics/dashboard');
-        setAnalytics(data);
+        const [dashRes, karmaRes] = await Promise.all([
+          api.get('/analytics/dashboard'),
+          api.get('/profile/leaderboard/karma'),
+        ]);
+        setAnalytics(dashRes.data);
+        setKarmaLeaders(karmaRes.data.leaders || []);
       } finally {
         setLoading(false);
       }
@@ -311,6 +317,45 @@ export const AnalyticsDashboard = () => {
           </table>
         </div>
       </div>
+
+      {/* Civic Karma Leaderboard */}
+      {karmaLeaders.length > 0 && (
+        <div className="glass-card p-5 sm:p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-indigo-500" />
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                Civic Karma &amp; Verified Champions
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Top verified citizens, student cells, and CSR contributors across Janupkram
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {karmaLeaders.slice(0, 5).map((leader, idx) => (
+              <Link
+                key={leader._id}
+                to={`/profile/${leader._id}`}
+                className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 p-4 hover:border-indigo-400 transition"
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">#{idx + 1}</span>
+                  <span className="font-extrabold text-amber-600 dark:text-amber-400">
+                    {leader.civicKarma || 0} pts
+                  </span>
+                </div>
+                <p className="mt-2 text-sm font-bold text-slate-900 dark:text-white truncate">
+                  {leader.name}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  {leader.organizationName || leader.role}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

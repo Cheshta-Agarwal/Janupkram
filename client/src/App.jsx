@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
+import { LanguageProvider } from './context/LanguageContext';
 import Navbar from './components/Navbar';
 import CommandPalette from './components/CommandPalette';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -11,6 +12,9 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ChallengeDetailPage from './pages/ChallengeDetailPage';
+import ProfilePage from './pages/ProfilePage';
+import VerificationSettingsPage from './pages/VerificationSettingsPage';
+import CertificateVerifyPage from './pages/CertificateVerifyPage';
 import CitizenDashboard from './pages/citizen/CitizenDashboard';
 import SubmitChallengePage from './pages/citizen/SubmitChallengePage';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -29,78 +33,91 @@ export function App() {
 
   return (
     <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-              <Navbar onOpenSearch={() => setPaletteOpen(true)} />
-              <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-              <main>
-                <Routes>
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
-                  <Route path="/challenges/:id" element={<ChallengeDetailPage />} />
+      <LanguageProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+                <Navbar onOpenSearch={() => setPaletteOpen(true)} />
+                <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+                <main>
+                  <Routes>
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/challenges/:id" element={<ChallengeDetailPage />} />
+                    <Route path="/profile/:id" element={<ProfilePage />} />
+                    <Route path="/verify/cert/:proposalId" element={<CertificateVerifyPage />} />
 
-                  <Route
-                    path="/citizen"
-                    element={
-                      <ProtectedRoute allowedRoles={['citizen']}>
-                        <CitizenDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/citizen/submit"
-                    element={
-                      <ProtectedRoute allowedRoles={['citizen']}>
-                        <SubmitChallengePage />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/settings/verification"
+                      element={
+                        <ProtectedRoute allowedRoles={['citizen', 'admin', 'university', 'industry']}>
+                          <VerificationSettingsPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/admin"
-                    element={
-                      <ProtectedRoute allowedRoles={['admin']}>
-                        <AdminDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/analytics"
-                    element={
-                      <ProtectedRoute allowedRoles={['admin', 'industry']}>
-                        <AnalyticsDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/citizen"
+                      element={
+                        <ProtectedRoute allowedRoles={['citizen']}>
+                          <CitizenDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/citizen/submit"
+                      element={
+                        <ProtectedRoute allowedRoles={['citizen']}>
+                          <SubmitChallengePage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/university"
-                    element={
-                      <ProtectedRoute allowedRoles={['university']}>
-                        <UniversityDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/admin"
+                      element={
+                        <ProtectedRoute allowedRoles={['admin']}>
+                          <AdminDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/analytics"
+                      element={
+                        <ProtectedRoute allowedRoles={['admin', 'industry']}>
+                          <AnalyticsDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/industry"
-                    element={
-                      <ProtectedRoute allowedRoles={['industry']}>
-                        <IndustryDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/university"
+                      element={
+                        <ProtectedRoute allowedRoles={['university']}>
+                          <UniversityDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </main>
-            </div>
-          </BrowserRouter>
-        </AuthProvider>
-      </ToastProvider>
+                    <Route
+                      path="/industry"
+                      element={
+                        <ProtectedRoute allowedRoles={['industry']}>
+                          <IndustryDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </main>
+              </div>
+            </BrowserRouter>
+          </AuthProvider>
+        </ToastProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

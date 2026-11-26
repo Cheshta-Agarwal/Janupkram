@@ -2,7 +2,7 @@ const express = require('express');
 const Proposal = require('../models/Proposal');
 const Challenge = require('../models/Challenge');
 const User = require('../models/User');
-const { verifyToken, allowRoles } = require('../middleware/auth');
+const { verifyToken, allowRoles, requireVerified } = require('../middleware/auth');
 const { assertLegalTransition } = require('../utils/stateMachine');
 const { recordAuditAndNotify } = require('../utils/auditAndNotify');
 
@@ -29,8 +29,8 @@ router.get('/', verifyToken, async (req, res, next) => {
   }
 });
 
-// POST /api/proposals (university only)
-router.post('/', verifyToken, allowRoles('university'), async (req, res, next) => {
+// POST /api/proposals (verified university only)
+router.post('/', verifyToken, allowRoles('university'), requireVerified, async (req, res, next) => {
   try {
     const {
       challengeId,
@@ -198,11 +198,75 @@ router.patch(
         .populate('challengeId', 'title district category severity status')
         .populate('universityId', 'name email organizationName district');
 
-      return res.json({ proposal: populated, milestone });
+    return res.json({ proposal: populated, milestone });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// POST /api/proposals/:id/budget (CSR Grant & Budget Utilization Ledger)
+router.post(
+  '/:id/budget',
+  verifyToken,
+  allowRoles('university', 'admin'),
+  async (req, res, next) => {
+    try {
+      const { title, category = 'Hardware & Prototyping', amount, invoiceUrl = '' } = req.body;
+      if (!title || amount === undefined) {
+        return res.status(400).json({ message: 'Expense title and amount are required.' });
+      }
+      const proposal = await Proposal.findById(req.params.id);
+      if (!proposal) return res.status(404).json({ message: 'Proposal not found.' });
+
+      if (
+        req.user.role === 'university' &&
+        String(proposal.universityId) !== String(req.user.id)
+      ) {
+        return res.status(403).json({ message: 'Only the owning university can log budget expenses.' });
+      }
+
+      proposal.budgetEntries.push({
+        title: String(title).trim(),
+        category: String(category).trim(),
+        amount: Number(amount) || 0,
+        invoiceUrl: String(invoiceUrl).trim(),
+        loggedByName: req.user.name,
+      });
+      await proposal.save();
+
+      return res.status(201).json({
+        budgetEntries: proposal.budgetEntries,
+      });
     } catch (err) {
       return next(err);
     }
   }
 );
+
+// GET /api/proposals/:id/certificate (Public QR Certificate Verification)
+router.get('/:id/certificate', async (req, res, next) => {
+  try {
+    const proposal = await Proposal.findById(req.params.id)
+      .populate('challengeId', 'title district category status createdAt')
+      .populate('universityId', 'name organizationName district aisheOrNaacCode verificationStatus')
+      .lean();
+    if (!proposal) return res.status(404).json({ message: 'Certificate not found.' });
+
+    const totalMs = proposal.milestones?.length || 0;
+    const completedMs = (proposal.milestones || []).filter((m) => m.status === 'completed').length;
+    const isEligible =
+      ['piloted', 'deployed'].includes(proposal.challengeId?.status) ||
+      (totalMs > 0 && completedMs === totalMs);
+
+    return res.json({
+      certificateId: `JPK-CERT-${String(proposal._id).slice(-8).toUpperCase()}`,
+      eligible: isEligible,
+      proposal,
+      milestoneStats: { total: totalMs, completed: completedMs },
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
 
 module.exports = router;

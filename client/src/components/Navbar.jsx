@@ -12,15 +12,20 @@ import {
   Sun,
   Moon,
   Search,
+  ShieldCheck,
+  Languages,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { ROLE_DASHBOARD_PATH, ROLE_LABELS } from '../utils/constants';
 import NotificationBell from './NotificationBell';
+import VerifiedBadge from './VerifiedBadge';
 
 export const Navbar = ({ onOpenSearch }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const { lang, setLang, t } = useLanguage();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -42,11 +47,8 @@ export const Navbar = ({ onOpenSearch }) => {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/85 dark:bg-slate-950/85 backdrop-blur-xl transition-colors duration-300 no-print">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-4 lg:gap-6 min-w-0">
-          <Link
-            to="/"
-            className="flex items-center gap-2.5 group min-w-0"
-          >
+        <div className="flex items-center gap-4 lg:gap-5 min-w-0">
+          <Link to="/" className="flex items-center gap-2.5 group min-w-0">
             <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/25 transition-transform duration-200 group-hover:scale-105 group-active:scale-95">
               <Landmark className="h-5 w-5" />
             </div>
@@ -69,46 +71,58 @@ export const Navbar = ({ onOpenSearch }) => {
             {isAuthenticated && (
               <NavLink to={ROLE_DASHBOARD_PATH[user.role] || '/'} className={navLinkClass}>
                 <LayoutDashboard className="h-4 w-4" />
-                Workspace
+                {t('workspace')}
               </NavLink>
             )}
             {isAuthenticated && user.role === 'citizen' && (
               <NavLink to="/citizen/submit" className={navLinkClass}>
                 <PlusCircle className="h-4 w-4" />
-                Submit Challenge
+                {t('submitChallenge')}
               </NavLink>
             )}
             {canViewAnalytics && (
               <NavLink to="/analytics" className={navLinkClass}>
                 <BarChart3 className="h-4 w-4" />
-                Analytics
+                {t('analytics')}
               </NavLink>
             )}
           </nav>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Quick Command Search */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={onOpenSearch}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900 px-2.5 sm:px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:text-slate-800 dark:hover:text-slate-200 transition-all active:scale-95"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900 px-2.5 sm:px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-500/50 transition active:scale-95"
             aria-label="Quick Search"
           >
             <Search className="h-3.5 w-3.5 text-indigo-500" />
-            <span className="hidden lg:inline">Search Grid...</span>
-            <kbd className="hidden lg:inline-flex items-center rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
+            <span className="hidden lg:inline">{t('searchGrid')}</span>
+            <kbd className="hidden xl:inline-flex items-center rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
               Ctrl K
             </kbd>
           </button>
 
-          {/* Dark / Light Mode Toggle */}
+          {/* Language Switcher */}
+          <div className="hidden sm:flex items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-[11px] font-semibold">
+            <Languages className="h-3.5 w-3.5 text-indigo-500 mr-1" />
+            <select
+              value={lang}
+              onChange={(e) => setLang(e.target.value)}
+              aria-label="Select Language"
+              className="bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option value="en">EN</option>
+              <option value="hi">हिन्दी</option>
+              <option value="pa">ਪੰਜਾਬੀ</option>
+            </select>
+          </div>
+
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-amber-400 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:scale-105 active:scale-90"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-amber-400 transition-all duration-200 hover:scale-105 active:scale-90"
             aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4 text-indigo-600" />}
           </button>
@@ -116,36 +130,47 @@ export const Navbar = ({ onOpenSearch }) => {
           {isAuthenticated ? (
             <>
               <NotificationBell />
-              <div className="hidden lg:flex items-center gap-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900 px-3 py-1.5">
+              <Link
+                to={`/profile/${user.id}`}
+                className="hidden lg:flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900 px-2.5 py-1.5 hover:border-indigo-300 transition"
+              >
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 text-xs font-bold text-white">
                   {user.name?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
                 <div className="leading-tight">
-                  <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 max-w-[130px] truncate">
+                  <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 max-w-[110px] truncate">
                     {user.name}
                   </p>
                   <p className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
                     {ROLE_LABELS[user.role] || user.role}
                   </p>
                 </div>
-              </div>
+                <VerifiedBadge status={user.verificationStatus} size="xs" />
+              </Link>
+              <Link
+                to="/settings/verification"
+                title={t('kycSettings')}
+                className="hidden sm:flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition active:scale-90"
+              >
+                <ShieldCheck className="h-4 w-4" />
+              </Link>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="hidden md:inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/60 hover:text-rose-700 dark:hover:text-rose-300 hover:border-rose-200 dark:hover:border-rose-800 transition-all active:scale-95"
+                className="hidden md:inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/60 hover:text-rose-700 transition active:scale-95"
               >
                 <LogOut className="h-3.5 w-3.5" />
-                <span className="hidden xl:inline">Sign Out</span>
+                <span className="hidden xl:inline">{t('signOut')}</span>
               </button>
             </>
           ) : (
             <div className="hidden sm:flex items-center gap-2">
               <Link to="/login" className="btn-secondary !py-2 !px-3.5 !text-xs">
                 <LogIn className="h-3.5 w-3.5" />
-                Sign In
+                {t('signIn')}
               </Link>
               <Link to="/register" className="btn-primary !py-2 !px-3.5 !text-xs">
-                Join Portal
+                {t('joinPortal')}
               </Link>
             </div>
           )}
@@ -153,7 +178,7 @@ export const Navbar = ({ onOpenSearch }) => {
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
-            className="md:hidden rounded-xl border border-slate-200 dark:border-slate-700 p-2 text-slate-600 dark:text-slate-300 transition active:scale-90"
+            className="md:hidden rounded-xl border border-slate-200 dark:border-slate-700 p-2 text-slate-600 dark:text-slate-300"
             aria-label="Toggle Menu"
           >
             {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -165,24 +190,31 @@ export const Navbar = ({ onOpenSearch }) => {
         <div className="md:hidden animate-fade-up border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-4 space-y-2">
           {isAuthenticated ? (
             <>
-              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-xs font-bold text-white">
-                  {user.name?.charAt(0)?.toUpperCase() || 'U'}
+              <Link
+                to={`/profile/${user.id}`}
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-xs font-bold text-white">
+                    {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">{user.name}</p>
+                    <p className="text-[11px] text-indigo-600 dark:text-indigo-400">
+                      {ROLE_LABELS[user.role]}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-900 dark:text-white">{user.name}</p>
-                  <p className="text-[11px] text-indigo-600 dark:text-indigo-400">
-                    {ROLE_LABELS[user.role]}
-                  </p>
-                </div>
-              </div>
+                <VerifiedBadge status={user.verificationStatus} size="xs" />
+              </Link>
               <NavLink
                 to={ROLE_DASHBOARD_PATH[user.role] || '/'}
                 className={navLinkClass}
                 onClick={() => setMobileOpen(false)}
               >
                 <LayoutDashboard className="h-4 w-4" />
-                My Workspace
+                {t('workspace')}
               </NavLink>
               {user.role === 'citizen' && (
                 <NavLink
@@ -191,7 +223,7 @@ export const Navbar = ({ onOpenSearch }) => {
                   onClick={() => setMobileOpen(false)}
                 >
                   <PlusCircle className="h-4 w-4" />
-                  Submit Challenge
+                  {t('submitChallenge')}
                 </NavLink>
               )}
               {canViewAnalytics && (
@@ -201,16 +233,24 @@ export const Navbar = ({ onOpenSearch }) => {
                   onClick={() => setMobileOpen(false)}
                 >
                   <BarChart3 className="h-4 w-4" />
-                  Executive Analytics
+                  {t('analytics')}
                 </NavLink>
               )}
+              <NavLink
+                to="/settings/verification"
+                className={navLinkClass}
+                onClick={() => setMobileOpen(false)}
+              >
+                <ShieldCheck className="h-4 w-4" />
+                {t('kycSettings')}
+              </NavLink>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition"
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400"
               >
                 <LogOut className="h-4 w-4" />
-                Sign Out
+                {t('signOut')}
               </button>
             </>
           ) : (
@@ -220,14 +260,14 @@ export const Navbar = ({ onOpenSearch }) => {
                 onClick={() => setMobileOpen(false)}
                 className="btn-secondary flex-1"
               >
-                Sign In
+                {t('signIn')}
               </Link>
               <Link
                 to="/register"
                 onClick={() => setMobileOpen(false)}
                 className="btn-primary flex-1"
               >
-                Join Portal
+                {t('joinPortal')}
               </Link>
             </div>
           )}
