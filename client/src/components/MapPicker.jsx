@@ -32,18 +32,18 @@ const deployedIcon = createPinIcon('#059669', 24);
 const TILE_LAYERS = {
   street: {
     label: 'Street',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attr: '&copy; OpenStreetMap contributors',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    attr: '&copy; Esri, HERE, Garmin, OpenStreetMap contributors',
   },
   dark: {
     label: 'Dark',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attr: '&copy; OpenStreetMap contributors',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    attr: '&copy; Esri, HERE, Garmin, OpenStreetMap contributors',
   },
   topo: {
     label: 'Terrain',
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    attr: '&copy; OpenStreetMap &copy; OpenTopoMap',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+    attr: '&copy; Esri, HERE, Garmin, USGS, OpenStreetMap contributors',
   },
 };
 
